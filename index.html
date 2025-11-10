@@ -441,8 +441,9 @@
             // Use dummy data for testing (set to false when ready for live data)
             useDummyData: true,
             
-            // Data source type: 'google_sheets', 'excel_online', or 'csv_url'
-            dataSource: 'excel_online',
+            // Data source type: 'google_sheets' (RECOMMENDED for live updates), 'excel_online', or 'csv_url'
+            // NOTE: For LIVE Excel sync, use 'google_sheets' - upload your Excel to Google Sheets
+            dataSource: 'google_sheets',
             
             // For Excel Online: Full public URL (if using Excel Online/OneDrive)
             // Get this by: Upload Excel to OneDrive → Share → "Anyone with link can view" → Copy link
@@ -640,11 +641,16 @@
         }
 
         /**
-         * Fetch data from Excel Online (OneDrive)
-         * Requires: Public Excel file shared via OneDrive
+         * Fetch data from Excel Online (OneDrive/SharePoint)
+         * Requires: Public Excel file shared via OneDrive or SharePoint
          * 
-         * IMPORTANT: OneDrive Excel files need to be exported to CSV or shared in a specific way
-         * The easiest method is to use the "Share" link and convert it to CSV format
+         * IMPORTANT: For LIVE updates, use Google Sheets instead (recommended).
+         * Excel Online requires the file to be exported to CSV format for direct access.
+         * 
+         * For true live Excel sync:
+         * 1. Upload your Excel to Google Sheets (File → Import → Upload)
+         * 2. Use the Google Sheets option with the Sheet ID
+         * 3. Your Excel changes will sync when you re-import, or just edit Google Sheets directly
          */
         async function fetchFromExcelOnline() {
             if (!CONFIG.excelOnlineUrl || CONFIG.excelOnlineUrl === 'YOUR_ONEDRIVE_SHARE_LINK_HERE') {
@@ -655,7 +661,7 @@
             try {
                 let csvUrl = CONFIG.excelOnlineUrl;
                 
-                // Handle different OneDrive URL formats
+                // Handle different OneDrive/SharePoint URL formats
                 // Format 1: https://onedrive.live.com/embed?resid=FILE_ID&authkey=KEY
                 if (csvUrl.includes('onedrive.live.com/embed')) {
                     const fileIdMatch = csvUrl.match(/resid=([^&]+)/);
@@ -664,19 +670,33 @@
                     if (fileIdMatch) {
                         const fileId = fileIdMatch[1];
                         const authKey = authKeyMatch ? authKeyMatch[1] : '';
-                        // Try to download as CSV - Note: OneDrive may require manual CSV export
-                        csvUrl = `https://onedrive.live.com/download?resid=${fileId}&authkey=${authKey}`;
+                        // Convert to download URL - but Excel files need to be CSV
+                        csvUrl = `https://onedrive.live.com/download?resid=${fileId}${authKey ? '&authkey=' + authKey : ''}`;
                     }
                 }
-                // Format 2: https://1drv.ms/x/s!FILE_ID (short link)
+                // Format 2: https://1drv.ms/x/s!FILE_ID (short link) - needs expansion
                 else if (csvUrl.includes('1drv.ms')) {
-                    // Short links need to be expanded first, but we'll try direct conversion
-                    console.warn('Short OneDrive links may not work directly. Please use the full share link.');
+                    console.warn('Short OneDrive links (1drv.ms) need to be converted. Please use the full share link or convert to CSV.');
+                    // Try to use as-is, but may not work
                 }
-                // Format 3: Direct CSV download link
-                // If the URL already points to CSV, use it as-is
+                // Format 3: SharePoint Online
+                else if (csvUrl.includes('sharepoint.com')) {
+                    // SharePoint URLs need special handling
+                    // Convert to direct download format if possible
+                    if (csvUrl.includes('/_layouts/15/download.aspx')) {
+                        // Already a download URL
+                    } else if (csvUrl.includes('/_layouts/15/WopiFrame.aspx')) {
+                        // Convert SharePoint view URL to download
+                        const siteMatch = csvUrl.match(/sourcedoc=([^&]+)/);
+                        if (siteMatch) {
+                            csvUrl = csvUrl.replace('/_layouts/15/WopiFrame.aspx', '/_layouts/15/download.aspx');
+                        }
+                    }
+                }
+                // Format 4: Direct CSV download link (best option)
+                // If URL already points to CSV, use it as-is
                 
-                // Add cache-busting
+                // Add cache-busting for live updates
                 const timestamp = new Date().getTime();
                 const separator = csvUrl.includes('?') ? '&' : '?';
                 csvUrl += `${separator}_t=${timestamp}`;
@@ -684,6 +704,7 @@
                 const response = await fetch(csvUrl, {
                     method: 'GET',
                     cache: 'no-store',
+                    mode: 'cors',
                     headers: {
                         'Cache-Control': 'no-cache, no-store, must-revalidate',
                         'Pragma': 'no-cache',
@@ -692,18 +713,24 @@
                 });
                 
                 if (!response.ok) {
-                    // If Excel file doesn't download as CSV, try alternative method
-                    if (response.headers.get('content-type')?.includes('application/vnd')) {
-                        throw new Error('Excel file format detected. Please export your Excel file to CSV first, or use Google Sheets instead.');
+                    // If Excel file doesn't download as CSV, provide helpful error
+                    const contentType = response.headers.get('content-type') || '';
+                    if (contentType.includes('application/vnd') || contentType.includes('spreadsheetml')) {
+                        throw new Error('Excel file format detected. For LIVE updates, please:\n' +
+                            '1. Export Excel to CSV and use that URL, OR\n' +
+                            '2. Upload Excel to Google Sheets and use Google Sheets option (RECOMMENDED for live sync)');
                     }
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
                 const csvText = await response.text();
                 
-                // Check if we actually got CSV or HTML (OneDrive login page)
-                if (csvText.trim().startsWith('<!DOCTYPE') || csvText.includes('<html')) {
-                    throw new Error('Received HTML instead of CSV. Make sure your Excel file is shared as "Anyone with the link can view" and try exporting to CSV format.');
+                // Check if we actually got CSV or HTML (login page or error)
+                if (csvText.trim().startsWith('<!DOCTYPE') || csvText.includes('<html') || csvText.includes('Sign in')) {
+                    throw new Error('Received HTML instead of CSV. Make sure:\n' +
+                        '1. Your Excel file is shared as "Anyone with the link can view"\n' +
+                        '2. Export your Excel file to CSV format first\n' +
+                        '3. Or use Google Sheets for better live sync support');
                 }
                 
                 const rows = parseCSV(csvText);
@@ -711,10 +738,17 @@
                 
             } catch (error) {
                 console.error('Error fetching from Excel Online:', error);
-                console.error('TIP: For Excel files, consider:');
-                console.error('1. Export Excel to CSV and upload to Google Drive/Dropbox');
-                console.error('2. Upload Excel to Google Sheets and use Google Sheets option');
-                console.error('3. Use the CSV URL option with a hosted CSV file');
+                console.error('\n=== RECOMMENDED SOLUTION FOR LIVE EXCEL SYNC ===');
+                console.error('For constantly updated Excel files, use Google Sheets:');
+                console.error('1. Go to Google Sheets (sheets.google.com)');
+                console.error('2. File → Import → Upload your Excel file');
+                console.error('3. Share the sheet publicly (Anyone with link can view)');
+                console.error('4. Get the Sheet ID from the URL');
+                console.error('5. Update CONFIG in index.html:');
+                console.error('   - Set googleSheetId to your Sheet ID');
+                console.error('   - Set dataSource to "google_sheets"');
+                console.error('   - Set useDummyData to false');
+                console.error('6. Your website will auto-refresh every 30-60 seconds with live data!');
                 return null;
             }
         }
