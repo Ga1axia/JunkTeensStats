@@ -36,4 +36,13 @@ jobs:
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+      
+      - name: Check deployment status
+        if: steps.deployment.outcome == 'failure'
+        run: |
+          echo "::error::GitHub Pages is not enabled. Please enable it in repository settings:"
+          echo "::error::https://github.com/Ga1axia/JunkTeensStats/settings/pages"
+          echo "::error::Select 'GitHub Actions' as the source, then re-run this workflow."
+          exit 1
 
