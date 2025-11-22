@@ -1,0 +1,15 @@
+{
+  "name": "junkteens-stats-proxy",
+  "version": "1.0.0",
+  "description": "CORS Proxy Server for OneDrive Excel Integration",
+  "main": "proxy-server.js",
+  "scripts": {
+    "start": "node proxy-server.js",
+    "serve": "node start-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5"
+  }
+}
+

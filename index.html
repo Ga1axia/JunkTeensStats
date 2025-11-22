@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>JunkTeens Stats Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Grandstander:wght@400;700&display=swap" rel="stylesheet">
@@ -19,7 +20,7 @@
             -webkit-text-stroke: 1px black;
             text-stroke: 1px black;
         }
-        #ti-widget-89105dc55f7b463a8656c912a46 {
+        #ti-widget-b4f8c971132a8200578625a6fc8 {
             display: flex !important;
             flex-direction: row !important;
             flex-wrap: nowrap !important;
@@ -35,16 +36,20 @@
             gap: 0px !important;
             width: 100% !important;
             max-width: 100% !important;
+            overflow: hidden !important;
         }
         .ti-review-item {
             flex: 0 0 100% !important;
             min-width: 100% !important;
             max-width: 100% !important;
             width: 100% !important;
+            overflow: hidden !important;
+            box-sizing: border-box !important;
         }
         .ti-widget {
             width: 100% !important;
             max-width: 100% !important;
+            overflow: hidden !important;
         }
         .ti-review-item * {
             word-wrap: break-word !important;
@@ -52,12 +57,108 @@
             hyphens: auto !important;
             max-width: 100% !important;
             box-sizing: border-box !important;
+            overflow: hidden !important;
         }
         .ti-review-content {
-            overflow: visible !important;
-            text-overflow: unset !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
             white-space: normal !important;
             word-break: break-word !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        /* Additional constraints for TrustIndex widget text */
+        #ti-widget-b4f8c971132a8200578625a6fc8 * {
+            max-width: 100% !important;
+            box-sizing: border-box !important;
+        }
+        #ti-widget-b4f8c971132a8200578625a6fc8 p,
+        #ti-widget-b4f8c971132a8200578625a6fc8 div,
+        #ti-widget-b4f8c971132a8200578625a6fc8 span {
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+            overflow: hidden !important;
+        }
+        /* Equal width columns for stats tables */
+        .yesterday-table,
+        .today-table {
+            table-layout: fixed;
+            width: 100%;
+        }
+        /* Prevent text overflow in table cells */
+        .yesterday-table td,
+        .yesterday-table th,
+        .today-table td,
+        .today-table th {
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            box-sizing: border-box;
+        }
+        .yesterday-table td p,
+        .yesterday-table th p,
+        .today-table td p,
+        .today-table th p {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        /* Prevent text overflow in weekly records table */
+        table td,
+        table th {
+            overflow: hidden;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: normal;
+            box-sizing: border-box;
+        }
+        table td p,
+        table th p {
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            overflow: hidden;
+            box-sizing: border-box;
+        }
+        /* TRUCK# column - wider for better readability */
+        .yesterday-table th:first-child,
+        .yesterday-table td:first-child,
+        .today-table th:first-child,
+        .today-table td:first-child {
+            width: 20%;
+        }
+        /* Truck columns 1-5 - equal width */
+        .yesterday-table th:nth-child(2),
+        .yesterday-table th:nth-child(3),
+        .yesterday-table th:nth-child(4),
+        .yesterday-table th:nth-child(5),
+        .yesterday-table th:nth-child(6),
+        .yesterday-table td:nth-child(2),
+        .yesterday-table td:nth-child(3),
+        .yesterday-table td:nth-child(4),
+        .yesterday-table td:nth-child(5),
+        .yesterday-table td:nth-child(6),
+        .today-table th:nth-child(2),
+        .today-table th:nth-child(3),
+        .today-table th:nth-child(4),
+        .today-table th:nth-child(5),
+        .today-table th:nth-child(6),
+        .today-table td:nth-child(2),
+        .today-table td:nth-child(3),
+        .today-table td:nth-child(4),
+        .today-table td:nth-child(5),
+        .today-table td:nth-child(6) {
+            width: 12%;
+        }
+        /* TOTAL column */
+        .yesterday-table th:last-child,
+        .yesterday-table td:last-child,
+        .today-table th:last-child,
+        .today-table td:last-child {
+            width: 20%;
         }
     </style>
 </head>
@@ -86,13 +187,13 @@
                                 <h2 class="font-grandstander font-bold text-white text-2xl md:text-4xl text-center">TODAY</h2>
                             </div>
                             <div class="text-right">
-                                <p class="font-lilita text-white text-xl md:text-3xl underline">Sept. 23</p>
+                                <p class="font-lilita text-white text-xl md:text-3xl underline" id="today-date">Loading...</p>
                             </div>
                         </div>
                         
                         <!-- Stats Table -->
                         <div class="overflow-x-auto border-2 border-white rounded">
-                            <table class="w-full">
+                            <table class="w-full today-table">
                                 <thead>
                                     <tr class="bg-gray-500">
                                         <th class="border border-black px-2 py-2 text-left" style="height: 50px;">
@@ -200,13 +301,13 @@
                                 <h2 class="font-grandstander font-bold text-white text-2xl md:text-4xl text-center">YESTERDAY</h2>
                             </div>
                             <div class="text-right">
-                                <p class="font-lilita text-white text-xl md:text-3xl underline">Sept. 22</p>
+                                <p class="font-lilita text-white text-xl md:text-3xl underline" id="yesterday-date">Loading...</p>
                             </div>
                         </div>
                         
                         <!-- Stats Table -->
                         <div class="overflow-x-auto border-2 border-white rounded">
-                            <table class="w-full">
+                            <table class="w-full yesterday-table">
                                 <thead>
                                     <tr class="bg-gray-500">
                                         <th class="border border-black px-2 py-2 text-left">
@@ -311,11 +412,16 @@
                 <!-- Right Column - Additional Stats -->
                 <div class="space-y-6 lg:col-span-1">
                     <!-- Google Reviews - Match Yesterday height -->
-                    <div class="bg-transparent border-2 border-white rounded-lg p-6 flex items-center justify-center" style="min-height: 352.5px;">
-                        <div class="w-full flex justify-center">
-                            <div id="ti-widget-89105dc55f7b463a8656c912a46" class="w-full max-w-md"></div>
+                    <div class="bg-transparent border-2 border-white rounded-lg p-6" style="min-height: 352.5px;">
+                        <div class="text-center mb-4">
+                            <div class="bg-transparent border-2 border-white rounded px-4 py-2 inline-block">
+                                <h2 class="font-grandstander font-bold text-white text-xl md:text-2xl">GOOGLE REVIEWS</h2>
+                            </div>
                         </div>
-                        <script defer async src='https://cdn.trustindex.io/loader.js?89105dc55f7b463a8656c912a46'></script>
+                        <div class="w-full flex justify-center items-center flex-1">
+                            <div id="ti-widget-b4f8c971132a8200578625a6fc8" class="w-full max-w-md mx-auto"></div>
+                        </div>
+                        <script defer async src='https://cdn.trustindex.io/loader.js?a51b543553584630dc4680585a3'></script>
                     </div>
 
                     <!-- Weekly Record Trucks - Match Yesterday height -->
@@ -428,26 +534,36 @@
         // ============================================
         const CONFIG = {
             // Google Sheets ID (get from URL: docs.google.com/spreadsheets/d/THIS_IS_THE_ID)
-            // OR Excel Online URL (see documentation for format)
-            googleSheetId: 'YOUR_SHEET_ID_HERE',
+            // Copy the long ID between /d/ and /edit in your Google Sheets URL
+            googleSheetId: '110BaxqO5KIE87H3jUXhO06LiTb99nePFzxTvsJRilxg', // ← Your Google Sheet ID
             
             // Sheet name (tab name in Google Sheets)
-            sheetName: 'Sheet1',
+            // For multiple trucks, we'll fetch from multiple tabs
+            // Each truck has its own tab: "Truck 1 Revenue", "Truck 2 Revenue", etc.
+            sheetName: 'Truck 1 Revenue', // Default/fallback sheet name
             
             // Auto-refresh interval in milliseconds (60000 = 1 minute)
             // For constantly updated sheets, use 30000 (30 seconds) or 60000 (1 minute)
             refreshInterval: 60000,
             
-            // Use dummy data for testing (set to false when ready for live data)
-            useDummyData: true,
+            // Use dummy data for testing (DEPRECATED - will show N/A instead)
+            // Set to false to use real data, or show N/A if data unavailable
+            useDummyData: false,
             
             // Data source type: 'google_sheets' (RECOMMENDED for live updates), 'excel_online', or 'csv_url'
-            // NOTE: For LIVE Excel sync, use 'google_sheets' - upload your Excel to Google Sheets
-            dataSource: 'google_sheets',
+            dataSource: 'google_sheets', // ← Changed to use Google Sheets
             
             // For Excel Online: Full public URL (if using Excel Online/OneDrive)
             // Get this by: Upload Excel to OneDrive → Share → "Anyone with link can view" → Copy link
-            excelOnlineUrl: 'YOUR_ONEDRIVE_SHARE_LINK_HERE',
+            excelOnlineUrl: 'https://1drv.ms/x/c/6b53344ac2825a50/EVBagsJKNFMggGttAAAAAAABtl5po5fDC075q0DDJ61Y6A',
+            
+            // CORS Proxy: Use a CORS proxy to bypass CORS restrictions for OneDrive
+            // Option 1: Run the local proxy server (proxy-server.js) and use:
+            //   corsProxy: 'http://localhost:3000/proxy?url='
+            // Option 2: Use a public CORS proxy (less reliable):
+            //   corsProxy: 'https://api.allorigins.win/raw?url='
+            // Set to null to disable proxy (will fail with CORS error)
+            corsProxy: 'http://localhost:3000/proxy?url=', // Change this after starting proxy-server.js
             
             // For CSV: Direct URL to CSV file (if hosting CSV separately)
             csvUrl: null,
@@ -462,32 +578,56 @@
             // Example: If your data is in cell B2, use 'B2'
             // Example: If your data is in cell C5, use 'C5'
             // ============================================
+            // Sheet mapping: Which tab to use for each truck
+            // Each truck has its own tab: "Truck 1 Revenue", "Truck 2 Revenue", etc.
+            truckSheets: {
+                truck1: 'Truck 1 Revenue',
+                truck2: 'Truck 2 Revenue',
+                truck3: 'Truck 3 Revenue',
+                truck4: 'Truck 4 Revenue',
+                truck5: 'Truck 5 Revenue',
+                truck6: 'Truck 6 Revenue' // Added for 6 trucks
+            },
+            
+            // Base row number for today (will be calculated dynamically)
+            // TODAY uses row 344 (J344), YESTERDAY uses row 343 (J343)
+            // Set useDynamicRows to false to use fixed rows, or true to auto-increment daily
+            useDynamicRows: false,  // Set to false to use fixed rows 344/343, true to auto-increment
+            baseRowToday: 344,  // TODAY's row (J344) - this is what TODAY table should use
+            baseRowYesterday: 343,  // YESTERDAY's row (J343) - this is what YESTERDAY table should use
+            
+            // Reference date when baseRowToday (337) was "today" (only used if useDynamicRows is true)
+            // UPDATE THIS to the date when row 337 in your sheet was actually "today"
+            // Format: [year, month-1, day] - month is 0-indexed (0=Jan, 11=Dec)
+            referenceDateWhen337WasToday: [2024, 10, 21], // November 21, 2024 - UPDATE THIS!
+            
             cellMapping: {
-                // TODAY'S STATS - Row 2 (Daily Rev), Row 3 (Close Rate), Row 4 (RPH)
+                // TODAY'S STATS - Row numbers calculated dynamically based on current date
+                // Each truck pulls from its own sheet tab (Truck 1 Revenue, Truck 2 Revenue, etc.)
                 today: {
                     daily_rev: {
-                        truck1: 'B2',    // Truck 1 Daily Rev - change to your Excel cell
-                        truck2: 'C2',    // Truck 2 Daily Rev - change to your Excel cell
-                        truck3: 'D2',    // Truck 3 Daily Rev - change to your Excel cell
-                        truck4: 'E2',    // Truck 4 Daily Rev - change to your Excel cell
-                        truck5: 'F2',    // Truck 5 Daily Rev - change to your Excel cell
-                        total: 'G2'      // Total Daily Rev - change to your Excel cell
+                        truck1: null,    // Will be calculated dynamically (J + todayRow)
+                        truck2: null,    // Will be calculated dynamically (J + todayRow)
+                        truck3: null,    // Will be calculated dynamically (J + todayRow)
+                        truck4: null,    // Will be calculated dynamically (J + todayRow)
+                        truck5: null,    // Will be calculated dynamically (J + todayRow)
+                        total: 'G2'      // Total Daily Rev - NEED TO UPDATE (which tab/cell?)
                     },
                     close_rate: {
-                        truck1: 'B3',    // Truck 1 Close Rate - change to your Excel cell
-                        truck2: 'C3',    // Truck 2 Close Rate - change to your Excel cell
-                        truck3: 'D3',    // Truck 3 Close Rate - change to your Excel cell
-                        truck4: 'E3',    // Truck 4 Close Rate - change to your Excel cell
-                        truck5: 'F3',    // Truck 5 Close Rate - change to your Excel cell
-                        total: 'G3'      // Total Close Rate - change to your Excel cell
+                        truck1: 'B3',    // Truck 1 Close Rate - NEED TO UPDATE (which cell?)
+                        truck2: 'C3',    // Truck 2 Close Rate - NEED TO UPDATE (which cell?)
+                        truck3: 'D3',    // Truck 3 Close Rate - NEED TO UPDATE (which cell?)
+                        truck4: 'E3',    // Truck 4 Close Rate - NEED TO UPDATE (which cell?)
+                        truck5: 'F3',    // Truck 5 Close Rate - NEED TO UPDATE (which cell?)
+                        total: 'G3'      // Total Close Rate - NEED TO UPDATE (which cell?)
                     },
                     rph: {
-                        truck1: 'B4',    // Truck 1 RPH - change to your Excel cell
-                        truck2: 'C4',    // Truck 2 RPH - change to your Excel cell
-                        truck3: 'D4',    // Truck 3 RPH - change to your Excel cell
-                        truck4: 'E4',    // Truck 4 RPH - change to your Excel cell
-                        truck5: 'F4',    // Truck 5 RPH - change to your Excel cell
-                        total: 'G4'      // Total RPH - change to your Excel cell
+                        truck1: 'B4',    // Truck 1 RPH - NEED TO UPDATE (which cell?)
+                        truck2: 'C4',    // Truck 2 RPH - NEED TO UPDATE (which cell?)
+                        truck3: 'D4',    // Truck 3 RPH - NEED TO UPDATE (which cell?)
+                        truck4: 'E4',    // Truck 4 RPH - NEED TO UPDATE (which cell?)
+                        truck5: 'F4',    // Truck 5 RPH - NEED TO UPDATE (which cell?)
+                        total: 'G4'      // Total RPH - NEED TO UPDATE (which cell?)
                     }
                 },
                 // YESTERDAY'S STATS - Adjust row numbers to match your Excel
@@ -537,19 +677,40 @@
          */
         function updateCell(selector, value, format = 'text') {
             const cell = document.querySelector(selector);
-            if (!cell) return;
+            if (!cell) {
+                console.warn(`Cell not found for selector: ${selector}`);
+                return;
+            }
 
             const pTag = cell.querySelector('p');
-            if (!pTag) return;
+            if (!pTag) {
+                console.warn(`<p> tag not found in cell: ${selector}`);
+                return;
+            }
+
+            // Clean the value - remove dollar signs, spaces, commas for parsing
+            let cleanValue = String(value || '0').trim();
+            
+            // Remove dollar signs, spaces, and commas
+            cleanValue = cleanValue.replace(/\$|,|\s/g, '').trim();
+            
+            // Handle empty or dash values
+            if (cleanValue === '-' || cleanValue === '' || cleanValue === '0') {
+                cleanValue = '0';
+            }
 
             // Format the value based on type
-            let formattedValue = value;
+            let formattedValue = cleanValue;
             if (format === 'currency') {
-                formattedValue = `$${parseFloat(value).toLocaleString()}`;
+                const numValue = parseFloat(cleanValue) || 0;
+                formattedValue = `$${numValue.toLocaleString()}`;
             } else if (format === 'percent') {
-                formattedValue = `${parseFloat(value)}%`;
+                const numValue = parseFloat(cleanValue) || 0;
+                formattedValue = `${numValue}%`;
             } else if (format === 'date') {
                 formattedValue = value; // Assume date is already formatted
+            } else {
+                formattedValue = cleanValue;
             }
 
             pTag.textContent = formattedValue;
@@ -559,14 +720,31 @@
          * Update all cells from a data object
          */
         function updateAllCells(data) {
+            console.log('=== UPDATING ALL CELLS WITH REAL DATA ===');
+            console.log('Data received:', {
+                today_daily_rev_truck1: data.today?.daily_rev?.truck1,
+                today_daily_rev_truck2: data.today?.daily_rev?.truck2,
+                yesterday_daily_rev_truck1: data.yesterday?.daily_rev?.truck1,
+                yesterday_daily_rev_truck2: data.yesterday?.daily_rev?.truck2
+            });
+            
             // Update Today's stats
             if (data.today) {
                 Object.keys(data.today).forEach(metric => {
                     Object.keys(data.today[metric]).forEach(truck => {
-                        const selector = `.data-cell[data-sheet="today"][data-metric="${metric}"][data-truck="${truck}"]`;
+                        // Convert "truck1" to "1", "truck2" to "2", etc.
+                        const truckNumber = truck.replace('truck', '');
+                        const selector = `.data-cell[data-sheet="today"][data-metric="${metric}"][data-truck="${truckNumber}"]`;
                         const value = data.today[metric][truck];
                         const format = metric === 'daily_rev' || metric === 'rph' ? 'currency' : 'percent';
+                        
+                        const cell = document.querySelector(selector);
+                        if (!cell) {
+                            console.warn(`⚠️ Cell not found: ${selector}`);
+                        } else {
+                            console.log(`✅ Updating TODAY ${metric} truck${truckNumber}: "${value}" → format: ${format}`);
                         updateCell(selector, value, format);
+                        }
                     });
                 });
             }
@@ -575,10 +753,19 @@
             if (data.yesterday) {
                 Object.keys(data.yesterday).forEach(metric => {
                     Object.keys(data.yesterday[metric]).forEach(truck => {
-                        const selector = `.data-cell[data-sheet="yesterday"][data-metric="${metric}"][data-truck="${truck}"]`;
+                        // Convert "truck1" to "1", "truck2" to "2", etc.
+                        const truckNumber = truck.replace('truck', '');
+                        const selector = `.data-cell[data-sheet="yesterday"][data-metric="${metric}"][data-truck="${truckNumber}"]`;
                         const value = data.yesterday[metric][truck];
                         const format = metric === 'daily_rev' || metric === 'rph' ? 'currency' : 'percent';
+                        
+                        const cell = document.querySelector(selector);
+                        if (!cell) {
+                            console.warn(`⚠️ Cell not found: ${selector}`);
+                        } else {
+                            console.log(`✅ Updating YESTERDAY ${metric} truck${truckNumber}: "${value}" → format: ${format}`);
                         updateCell(selector, value, format);
+                        }
                     });
                 });
             }
@@ -597,7 +784,31 @@
         }
 
         /**
+         * Fetch data from a specific Google Sheets tab
+         */
+        async function fetchSheetTab(sheetName) {
+            const timestamp = new Date().getTime();
+            const csvUrl = `https://docs.google.com/spreadsheets/d/${CONFIG.googleSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&t=${timestamp}`;
+            
+            // Google Sheets CSV export doesn't require custom headers and blocks some CORS headers
+            // Using minimal headers to avoid CORS preflight issues
+            const response = await fetch(csvUrl, {
+                method: 'GET',
+                cache: 'no-store'
+                // Removed custom headers that cause CORS issues with Google Sheets
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status} for sheet "${sheetName}"`);
+            }
+            
+            const csvText = await response.text();
+            return parseCSV(csvText);
+        }
+
+        /**
          * Fetch data from Google Sheets with cache-busting for constantly updated sheets
+         * Fetches from multiple tabs (one for each truck)
          * Requires: Public sheet
          */
         async function fetchFromGoogleSheets() {
@@ -607,32 +818,38 @@
             }
 
             try {
-                // Using CSV export with cache-busting timestamp to ensure fresh data
-                // This prevents browser caching and ensures we get the latest updates
-                const timestamp = new Date().getTime();
-                const csvUrl = `https://docs.google.com/spreadsheets/d/${CONFIG.googleSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(CONFIG.sheetName)}&t=${timestamp}`;
+                console.log('Fetching data from multiple Google Sheets tabs...');
                 
-                // Add no-cache headers to ensure fresh data
-                const response = await fetch(csvUrl, {
-                    method: 'GET',
-                    cache: 'no-store',
-                    headers: {
-                        'Cache-Control': 'no-cache, no-store, must-revalidate',
-                        'Pragma': 'no-cache',
-                        'Expires': '0'
+                // Fetch data from each truck's tab
+                const truckData = {};
+                const truckSheets = CONFIG.truckSheets || {};
+                
+                // Fetch all truck tabs in parallel
+                const fetchPromises = [];
+                const truckKeys = ['truck1', 'truck2', 'truck3', 'truck4', 'truck5'];
+                
+                for (const truckKey of truckKeys) {
+                    const sheetName = truckSheets[truckKey];
+                    if (sheetName) {
+                        fetchPromises.push(
+                            fetchSheetTab(sheetName)
+                                .then(rows => {
+                                    truckData[truckKey] = rows;
+                                    console.log(`✓ Fetched data from "${sheetName}"`);
+                                })
+                                .catch(error => {
+                                    console.warn(`⚠ Could not fetch "${sheetName}":`, error.message);
+                                    truckData[truckKey] = null;
+                                })
+                        );
                     }
-                });
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 
-                const csvText = await response.text();
+                // Wait for all fetches to complete
+                await Promise.all(fetchPromises);
                 
-                // Parse CSV and convert to data structure
-                // Handle quoted values properly
-                const rows = parseCSV(csvText);
-                return parseCSVToData(rows);
+                // Parse the data from all tabs
+                return parseCSVToDataMultiTab(truckData);
                 
             } catch (error) {
                 console.error('Error fetching from Google Sheets:', error);
@@ -642,15 +859,8 @@
 
         /**
          * Fetch data from Excel Online (OneDrive/SharePoint)
+         * Supports both .xlsx and .csv files
          * Requires: Public Excel file shared via OneDrive or SharePoint
-         * 
-         * IMPORTANT: For LIVE updates, use Google Sheets instead (recommended).
-         * Excel Online requires the file to be exported to CSV format for direct access.
-         * 
-         * For true live Excel sync:
-         * 1. Upload your Excel to Google Sheets (File → Import → Upload)
-         * 2. Use the Google Sheets option with the Sheet ID
-         * 3. Your Excel changes will sync when you re-import, or just edit Google Sheets directly
          */
         async function fetchFromExcelOnline() {
             if (!CONFIG.excelOnlineUrl || CONFIG.excelOnlineUrl === 'YOUR_ONEDRIVE_SHARE_LINK_HERE') {
@@ -674,10 +884,27 @@
                         csvUrl = `https://onedrive.live.com/download?resid=${fileId}${authKey ? '&authkey=' + authKey : ''}`;
                     }
                 }
-                // Format 2: https://1drv.ms/x/s!FILE_ID (short link) - needs expansion
+                // Format 2: https://1drv.ms/x/c/... (short link) - convert to Excel Online format
                 else if (csvUrl.includes('1drv.ms')) {
-                    console.warn('Short OneDrive links (1drv.ms) need to be converted. Please use the full share link or convert to CSV.');
-                    // Try to use as-is, but may not work
+                    console.log('Short OneDrive link detected. Converting to Excel Online format...');
+                    // Extract the file identifier from the short link
+                    // Format: https://1drv.ms/x/c/FOLDER_ID/FILE_ID
+                    const match = csvUrl.match(/1drv\.ms\/x\/c\/([^\/]+)\/(.+)/);
+                    if (match) {
+                        const folderId = match[1];
+                        const fileId = match[2];
+                        
+                        // Convert 1drv.ms short link to direct download URL
+                        // The fileId can be used with OneDrive's download endpoint
+                        csvUrl = `https://onedrive.live.com/download?resid=${fileId}`;
+                        
+                        console.log('Converted OneDrive short link to direct download URL');
+                        console.log('URL:', csvUrl);
+                        console.log('Note: Excel files (.xlsx) will be automatically parsed using SheetJS library');
+                    } else {
+                        // Try using the link as-is
+                        console.warn('Could not parse OneDrive short link. Using link as-is...');
+                    }
                 }
                 // Format 3: SharePoint Online
                 else if (csvUrl.includes('sharepoint.com')) {
@@ -701,7 +928,18 @@
                 const separator = csvUrl.includes('?') ? '&' : '?';
                 csvUrl += `${separator}_t=${timestamp}`;
                 
-                const response = await fetch(csvUrl, {
+                // Apply CORS proxy if configured
+                let finalUrl = csvUrl;
+                if (CONFIG.corsProxy) {
+                    // Encode the URL for the proxy
+                    finalUrl = CONFIG.corsProxy + encodeURIComponent(csvUrl);
+                    console.log('Using CORS proxy:', CONFIG.corsProxy);
+                    console.log('Proxied URL:', finalUrl);
+                }
+                
+                console.log('Attempting to fetch from:', finalUrl);
+                
+                const response = await fetch(finalUrl, {
                     method: 'GET',
                     cache: 'no-store',
                     mode: 'cors',
@@ -712,32 +950,132 @@
                     }
                 });
                 
+                console.log('Response status:', response.status, response.statusText);
+                console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+                
                 if (!response.ok) {
+                    // Try to get error message from response
+                    let errorText = '';
+                    try {
+                        errorText = await response.text();
+                        console.error('Error response body:', errorText.substring(0, 500));
+                    } catch (e) {
+                        // Ignore
+                    }
+                    
                     // If Excel file doesn't download as CSV, provide helpful error
                     const contentType = response.headers.get('content-type') || '';
                     if (contentType.includes('application/vnd') || contentType.includes('spreadsheetml')) {
-                        throw new Error('Excel file format detected. For LIVE updates, please:\n' +
-                            '1. Export Excel to CSV and use that URL, OR\n' +
-                            '2. Upload Excel to Google Sheets and use Google Sheets option (RECOMMENDED for live sync)');
+                        throw new Error('Excel file format detected. The file should work with SheetJS parser.');
                     }
-                    throw new Error(`HTTP error! status: ${response.status}`);
+                    
+                    if (response.status === 403 || response.status === 401) {
+                        throw new Error(`Access denied (${response.status}). Make sure:\n` +
+                            '1. Your Excel file is shared as "Anyone with the link can view"\n' +
+                            '2. The sharing link is correct\n' +
+                            '3. Try getting the full share link (not the short 1drv.ms link)');
+                    }
+                    
+                    throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
                 }
                 
+                // Check content type to determine if it's Excel or CSV
+                const contentType = response.headers.get('content-type') || '';
+                const isExcel = contentType.includes('spreadsheetml') || 
+                               contentType.includes('application/vnd.openxmlformats-officedocument') ||
+                               csvUrl.includes('.xlsx') || csvUrl.includes('.xls');
+                
+                if (isExcel) {
+                    // Handle Excel file (.xlsx) - parse using SheetJS
+                    console.log('Excel file detected, parsing with SheetJS...');
+                    const arrayBuffer = await response.arrayBuffer();
+                    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+                    
+                    // Log available sheet names for debugging
+                    console.log('Available sheets in workbook:', workbook.SheetNames);
+                    console.log('Looking for sheet:', CONFIG.sheetName);
+                    
+                    // Get the specified sheet (or use first sheet if not found)
+                    let sheetName = CONFIG.sheetName;
+                    let worksheet = workbook.Sheets[sheetName];
+                    
+                    // If exact name not found, try case-insensitive match
+                    if (!worksheet && sheetName) {
+                        const foundSheet = workbook.SheetNames.find(name => 
+                            name.toLowerCase() === sheetName.toLowerCase()
+                        );
+                        if (foundSheet) {
+                            console.log(`Found sheet with case-insensitive match: "${foundSheet}"`);
+                            sheetName = foundSheet;
+                            worksheet = workbook.Sheets[sheetName];
+                        }
+                    }
+                    
+                    // If still not found, use first sheet and warn
+                    if (!worksheet) {
+                        if (sheetName) {
+                            console.warn(`Sheet "${sheetName}" not found. Using first sheet "${workbook.SheetNames[0]}" instead.`);
+                        }
+                        sheetName = workbook.SheetNames[0];
+                        worksheet = workbook.Sheets[sheetName];
+                    }
+                    
+                    if (!worksheet) {
+                        throw new Error(`No sheets found in workbook. Available sheets: ${workbook.SheetNames.join(', ')}`);
+                    }
+                    
+                    console.log(`Using sheet: "${sheetName}"`);
+                    
+                    // Convert Excel sheet to CSV-like rows
+                    const rows = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+                    
+                    // Convert to string array format (like CSV parser)
+                    const csvRows = rows.map(row => Array.isArray(row) ? row : [row]);
+                    
+                    console.log(`Parsed ${csvRows.length} rows from Excel sheet`);
+                    
+                    return parseCSVToData(csvRows);
+                } else {
+                    // Handle CSV file
                 const csvText = await response.text();
                 
                 // Check if we actually got CSV or HTML (login page or error)
                 if (csvText.trim().startsWith('<!DOCTYPE') || csvText.includes('<html') || csvText.includes('Sign in')) {
                     throw new Error('Received HTML instead of CSV. Make sure:\n' +
                         '1. Your Excel file is shared as "Anyone with the link can view"\n' +
-                        '2. Export your Excel file to CSV format first\n' +
-                        '3. Or use Google Sheets for better live sync support');
+                            '2. Or use Google Sheets for better live sync support');
                 }
                 
                 const rows = parseCSV(csvText);
                 return parseCSVToData(rows);
+                }
                 
             } catch (error) {
                 console.error('Error fetching from Excel Online:', error);
+                
+                // Check if it's a CORS error
+                if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+                    console.error('\n=== CORS ERROR DETECTED ===');
+                    console.error('OneDrive blocks direct browser access due to CORS restrictions.');
+                    console.error('\n=== SOLUTION OPTIONS ===');
+                    console.error('\nOPTION 1: Use Google Sheets (RECOMMENDED - Works perfectly!):');
+                    console.error('1. Go to Google Sheets (sheets.google.com)');
+                    console.error('2. File → Import → Upload your Excel file');
+                    console.error('3. Share the sheet publicly (Anyone with link can view)');
+                    console.error('4. Get the Sheet ID from the URL (the long ID between /d/ and /edit)');
+                    console.error('5. Update CONFIG in index.html:');
+                    console.error('   - Set googleSheetId to your Sheet ID');
+                    console.error('   - Set dataSource to "google_sheets"');
+                    console.error('   - Set useDummyData to false');
+                    console.error('6. Your website will auto-refresh every 30-60 seconds with live data!');
+                    console.error('\nOPTION 2: Export Excel to CSV and host it:');
+                    console.error('1. Export your Excel file to CSV format');
+                    console.error('2. Upload CSV to a web server or cloud storage');
+                    console.error('3. Get the direct download URL');
+                    console.error('4. Update CONFIG to use csvUrl instead');
+                    console.error('\nOPTION 3: Use a server-side proxy (advanced):');
+                    console.error('Set up a backend server to fetch the OneDrive file and serve it to your frontend.');
+                } else {
                 console.error('\n=== RECOMMENDED SOLUTION FOR LIVE EXCEL SYNC ===');
                 console.error('For constantly updated Excel files, use Google Sheets:');
                 console.error('1. Go to Google Sheets (sheets.google.com)');
@@ -749,6 +1087,7 @@
                 console.error('   - Set dataSource to "google_sheets"');
                 console.error('   - Set useDummyData to false');
                 console.error('6. Your website will auto-refresh every 30-60 seconds with live data!');
+                }
                 return null;
             }
         }
@@ -797,7 +1136,12 @@
             const lines = csvText.split('\n');
             
             for (let line of lines) {
-                if (!line.trim()) continue;
+                // Skip completely empty lines
+                if (!line.trim()) {
+                    // But add an empty row to maintain row numbers
+                    rows.push([]);
+                    continue;
+                }
                 
                 const row = [];
                 let current = '';
@@ -824,6 +1168,16 @@
                 
                 row.push(current.trim()); // Add last field
                 rows.push(row);
+            }
+            
+            // Debug: Log first few rows to help diagnose issues
+            if (rows.length > 0) {
+                console.log('Parsed CSV - Total rows:', rows.length);
+                console.log('First row has', rows[0]?.length || 0, 'columns');
+                if (rows.length > 335) {
+                    console.log('Row 336 (index 335) has', rows[335]?.length || 0, 'columns');
+                    console.log('Row 336 data:', rows[335]);
+                }
             }
             
             return rows;
@@ -868,25 +1222,321 @@
                 return '0';
             }
             
+            // Check if row exists
+            if (cell.row >= rows.length) {
+                console.warn(`Row ${cell.row + 1} (from ${cellRef}) not found in data. Total rows: ${rows.length}`);
+                return '0';
+            }
+            
             const row = rows[cell.row];
-            if (!row) {
-                console.warn(`Row ${cell.row} (from ${cellRef}) not found in data`);
+            if (!row || !Array.isArray(row)) {
+                console.warn(`Row ${cell.row + 1} (from ${cellRef}) is invalid`);
+                return '0';
+            }
+            
+            // Check if column exists
+            if (cell.col >= row.length) {
+                console.warn(`Column ${String.fromCharCode(65 + cell.col)} (from ${cellRef}) not found in row ${cell.row + 1}`);
                 return '0';
             }
             
             const value = row[cell.col];
-            if (value === undefined || value === null || value === '') {
-                console.warn(`Cell ${cellRef} (row ${cell.row}, col ${cell.col}) is empty`);
+            
+            // Handle empty, null, or undefined values
+            if (value === undefined || value === null || value === '' || String(value).trim() === '') {
                 return '0';
             }
             
             // Remove quotes and clean up the value
-            return String(value).trim().replace(/^["']|["']$/g, '');
+            let cleanedValue = String(value).trim().replace(/^["']|["']$/g, '');
+            
+            // Handle dollar signs and formatting (e.g., '$ 2,840.00' or '$ -')
+            // Remove dollar signs, spaces, and commas for numeric values
+            if (cleanedValue.includes('$')) {
+                cleanedValue = cleanedValue.replace(/\$/g, '').trim();
+                // If it's just '$ -' or empty after removing $, return '0'
+                if (cleanedValue === '-' || cleanedValue === '' || cleanedValue.trim() === '') {
+                    return '0';
+                }
+                // Remove commas and extra spaces from numbers
+                cleanedValue = cleanedValue.replace(/,/g, '').replace(/\s+/g, '');
+            }
+            
+            // Return '0' if cleaned value is empty or just a dash
+            if (cleanedValue === '' || cleanedValue === '-' || cleanedValue.trim() === '') {
+                return '0';
+            }
+            
+            // Return the cleaned value (without $ sign, will be formatted later)
+            return cleanedValue;
+        }
+
+        /**
+         * Calculate the row number for today and yesterday
+         * Row numbers increment by 1 each day
+         * TODAY uses baseRowToday (344), YESTERDAY uses baseRowYesterday (343)
+         * 
+         * IMPORTANT: Set referenceDate to the date when row 344 was actually "today" in your sheet
+         * This date should match when you want row 344 to represent "today"
+         */
+        function calculateTodayRow() {
+            // If dynamic rows are disabled, just use the base rows (fixed)
+            if (!CONFIG.useDynamicRows) {
+                const todayRow = CONFIG.baseRowToday;  // Fixed: 344
+                const yesterdayRow = CONFIG.baseRowYesterday;  // Fixed: 343
+                console.log(`Using FIXED rows - TODAY: J${todayRow}, YESTERDAY: J${yesterdayRow}`);
+                return { todayRow, yesterdayRow };
+            }
+            
+            // Dynamic row calculation (increments daily)
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const [refYear, refMonth, refDay] = CONFIG.referenceDateWhen337WasToday || [2024, 10, 21];
+            const referenceDate = new Date(refYear, refMonth, refDay);
+            referenceDate.setHours(0, 0, 0, 0);
+            
+            const daysDiff = Math.floor((today - referenceDate) / (1000 * 60 * 60 * 24));
+            const todayRow = CONFIG.baseRowToday + daysDiff;
+            const yesterdayRow = CONFIG.baseRowYesterday + daysDiff;
+            
+            console.log(`=== DYNAMIC ROW CALCULATION ===`);
+            console.log(`Today's date: ${today.toLocaleDateString()}`);
+            console.log(`Reference date: ${referenceDate.toLocaleDateString()}`);
+            console.log(`Days difference: ${daysDiff}`);
+            console.log(`Calculated rows - TODAY: J${todayRow}, YESTERDAY: J${yesterdayRow}`);
+            
+            if (todayRow > 400) {
+                console.warn(`⚠️ WARNING: Calculated row ${todayRow} seems too high!`);
+            }
+            
+            return { todayRow, yesterdayRow };
+        }
+
+        /**
+         * Calculate weekly records: Top 3 revenues from past 7 days (yesterday + 6 more days back)
+         * Gets data from rows J343 (yesterday) down to J337 (7 days ago)
+         * Returns truck number (1-5), revenue, and date based on row offset
+         */
+        function calculateWeeklyRecords(truckData, yesterdayRow) {
+            // Helper to parse currency values
+            function parseCurrencyValue(val) {
+                if (!val || val === '0' || val === '-') return 0;
+                let clean = String(val).replace(/\$|,|\s/g, '').trim();
+                if (clean === '' || clean === '-') return 0;
+                return parseFloat(clean) || 0;
+            }
+            
+            // Helper to get cell value from a specific truck's data
+            function getTruckCellValue(truckKey, cellRef) {
+                const rows = truckData[truckKey];
+                if (!rows) {
+                    return '0';
+                }
+                const value = getCellValue(rows, cellRef);
+                return value;
+            }
+            
+            // Helper to format date based on days back from today
+            function formatDate(daysBack) {
+                const date = new Date();
+                date.setDate(date.getDate() - daysBack);
+                const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                const month = months[date.getMonth()];
+                const day = date.getDate();
+                return `${month}. ${day}`;
+            }
+            
+            // Collect all revenues from past 7 days (rows yesterdayRow down to yesterdayRow - 6)
+            const allRevenues = [];
+            
+            // Loop through 7 days (yesterday = 1 day back, to 7 days back)
+            for (let daysBack = 1; daysBack <= 7; daysBack++) {
+                const row = yesterdayRow - (daysBack - 1); // yesterdayRow is 1 day back, so row = yesterdayRow for daysBack=1
+                
+                // Get revenue from all 5 trucks for this row
+                for (let truckNum = 1; truckNum <= 5; truckNum++) {
+                    const truckKey = `truck${truckNum}`;
+                    const cellRef = `J${row}`;
+                    const revenueValue = getTruckCellValue(truckKey, cellRef);
+                    const revenue = parseCurrencyValue(revenueValue);
+                    
+                    if (revenue > 0) {
+                        allRevenues.push({
+                            truck: truckNum,
+                            revenue: revenue,
+                            daysBack: daysBack,
+                            date: formatDate(daysBack),
+                            row: row
+                        });
+                    }
+                }
+            }
+            
+            // Sort by revenue (descending) and take top 3
+            allRevenues.sort((a, b) => b.revenue - a.revenue);
+            const top3 = allRevenues.slice(0, 3);
+            
+            console.log('Weekly Records - Top 3 revenues from past 7 days:', top3);
+            
+            // Return in the expected format
+            return {
+                rank1_truck: top3[0] ? String(top3[0].truck) : 'N/A',
+                rank1_revenue: top3[0] ? String(top3[0].revenue) : '0',
+                rank1_date: top3[0] ? top3[0].date : 'N/A',
+                rank2_truck: top3[1] ? String(top3[1].truck) : 'N/A',
+                rank2_revenue: top3[1] ? String(top3[1].revenue) : '0',
+                rank2_date: top3[1] ? top3[1].date : 'N/A',
+                rank3_truck: top3[2] ? String(top3[2].truck) : 'N/A',
+                rank3_revenue: top3[2] ? String(top3[2].revenue) : '0',
+                rank3_date: top3[2] ? top3[2].date : 'N/A'
+            };
+        }
+
+        /**
+         * Parse data from multiple tabs (one per truck)
+         * Each truck's data comes from its own tab
+         * Today uses dynamically calculated row (starts at J344), Yesterday uses row - 1 (starts at J343)
+         */
+        function parseCSVToDataMultiTab(truckData) {
+            const mapping = CONFIG.cellMapping;
+            const truckSheets = CONFIG.truckSheets || {};
+            
+            // Calculate today's and yesterday's row numbers
+            const { todayRow, yesterdayRow } = calculateTodayRow();
+            
+            // Helper function to get cell value from a specific truck's data
+            function getTruckCellValue(truckKey, cellRef) {
+                const rows = truckData[truckKey];
+                if (!rows) {
+                    console.warn(`No data available for ${truckKey}`);
+                    return '0';
+                }
+                const value = getCellValue(rows, cellRef);
+                return value;
+            }
+            
+            // Helper to create cell reference with dynamic row (column J = column 9)
+            function getTodayCell(truckKey) {
+                const cellRef = `J${todayRow}`;
+                console.log(`Getting today's data from ${truckKey} at ${cellRef}`);
+                return getTruckCellValue(truckKey, cellRef);
+            }
+            
+            function getYesterdayCell(truckKey) {
+                const cellRef = `J${yesterdayRow}`;
+                console.log(`Getting yesterday's data from ${truckKey} at ${cellRef}`);
+                return getTruckCellValue(truckKey, cellRef);
+            }
+            
+            // Get individual truck values for TODAY (using todayRow which starts at 344)
+            console.log('Fetching TODAY data from row', todayRow);
+            const todayTruck1 = getTodayCell('truck1');
+            const todayTruck2 = getTodayCell('truck2');
+            const todayTruck3 = getTodayCell('truck3');
+            const todayTruck4 = getTodayCell('truck4');
+            const todayTruck5 = getTodayCell('truck5');
+            
+            console.log('TODAY values:', { truck1: todayTruck1, truck2: todayTruck2, truck3: todayTruck3, truck4: todayTruck4, truck5: todayTruck5 });
+            
+            // Helper to clean and parse currency values
+            function parseCurrencyValue(val) {
+                if (!val || val === '0' || val === '-') return 0;
+                // Remove $, spaces, commas
+                let clean = String(val).replace(/\$|,|\s/g, '').trim();
+                if (clean === '' || clean === '-') return 0;
+                return parseFloat(clean) || 0;
+            }
+            
+            // Calculate total for today
+            const todayTotal = String(
+                parseCurrencyValue(todayTruck1) + 
+                parseCurrencyValue(todayTruck2) + 
+                parseCurrencyValue(todayTruck3) + 
+                parseCurrencyValue(todayTruck4) + 
+                parseCurrencyValue(todayTruck5)
+            );
+            
+            // Get yesterday values (using yesterdayRow which starts at 343)
+            console.log('Fetching YESTERDAY data from row', yesterdayRow);
+            const yesterdayTruck1 = getYesterdayCell('truck1');
+            const yesterdayTruck2 = getYesterdayCell('truck2');
+            const yesterdayTruck3 = getYesterdayCell('truck3');
+            const yesterdayTruck4 = getYesterdayCell('truck4');
+            const yesterdayTruck5 = getYesterdayCell('truck5');
+            
+            console.log('YESTERDAY values:', { truck1: yesterdayTruck1, truck2: yesterdayTruck2, truck3: yesterdayTruck3, truck4: yesterdayTruck4, truck5: yesterdayTruck5 });
+            
+            // Calculate total for yesterday
+            const yesterdayTotal = String(
+                parseCurrencyValue(yesterdayTruck1) + 
+                parseCurrencyValue(yesterdayTruck2) + 
+                parseCurrencyValue(yesterdayTruck3) + 
+                parseCurrencyValue(yesterdayTruck4) + 
+                parseCurrencyValue(yesterdayTruck5)
+            );
+            
+            return {
+                today: {
+                    daily_rev: {
+                        truck1: todayTruck1,  // From "Truck 1 Revenue" tab, row J{todayRow}
+                        truck2: todayTruck2,  // From "Truck 2 Revenue" tab, row J{todayRow}
+                        truck3: todayTruck3,  // From "Truck 3 Revenue" tab, row J{todayRow}
+                        truck4: todayTruck4,  // From "Truck 4 Revenue" tab, row J{todayRow}
+                        truck5: todayTruck5,  // From "Truck 5 Revenue" tab, row J{todayRow}
+                        total: todayTotal  // Calculated sum of all trucks
+                    },
+                    close_rate: {
+                        truck1: getTruckCellValue('truck1', mapping.today.close_rate.truck1) || '0',
+                        truck2: getTruckCellValue('truck2', mapping.today.close_rate.truck2) || '0',
+                        truck3: getTruckCellValue('truck3', mapping.today.close_rate.truck3) || '0',
+                        truck4: getTruckCellValue('truck4', mapping.today.close_rate.truck4) || '0',
+                        truck5: getTruckCellValue('truck5', mapping.today.close_rate.truck5) || '0',
+                        total: '0'  // TODO: Calculate average or specify total cell
+                    },
+                    rph: {
+                        truck1: getTruckCellValue('truck1', mapping.today.rph.truck1) || '0',
+                        truck2: getTruckCellValue('truck2', mapping.today.rph.truck2) || '0',
+                        truck3: getTruckCellValue('truck3', mapping.today.rph.truck3) || '0',
+                        truck4: getTruckCellValue('truck4', mapping.today.rph.truck4) || '0',
+                        truck5: getTruckCellValue('truck5', mapping.today.rph.truck5) || '0',
+                        total: '0'  // TODO: Calculate average or specify total cell
+                    }
+                },
+                yesterday: {
+                    daily_rev: {
+                        truck1: yesterdayTruck1,  // From "Truck 1 Revenue" tab, row J{yesterdayRow}
+                        truck2: yesterdayTruck2,  // From "Truck 2 Revenue" tab, row J{yesterdayRow}
+                        truck3: yesterdayTruck3,  // From "Truck 3 Revenue" tab, row J{yesterdayRow}
+                        truck4: yesterdayTruck4,  // From "Truck 4 Revenue" tab, row J{yesterdayRow}
+                        truck5: yesterdayTruck5,  // From "Truck 5 Revenue" tab, row J{yesterdayRow}
+                        total: yesterdayTotal  // Calculated sum of all trucks
+                    },
+                    close_rate: {
+                        truck1: getTruckCellValue('truck1', mapping.yesterday.close_rate.truck1) || '0',
+                        truck2: getTruckCellValue('truck2', mapping.yesterday.close_rate.truck2) || '0',
+                        truck3: getTruckCellValue('truck3', mapping.yesterday.close_rate.truck3) || '0',
+                        truck4: getTruckCellValue('truck4', mapping.yesterday.close_rate.truck4) || '0',
+                        truck5: getTruckCellValue('truck5', mapping.yesterday.close_rate.truck5) || '0',
+                        total: '0'  // TODO: Calculate average or specify total cell
+                    },
+                    rph: {
+                        truck1: getTruckCellValue('truck1', mapping.yesterday.rph.truck1) || '0',
+                        truck2: getTruckCellValue('truck2', mapping.yesterday.rph.truck2) || '0',
+                        truck3: getTruckCellValue('truck3', mapping.yesterday.rph.truck3) || '0',
+                        truck4: getTruckCellValue('truck4', mapping.yesterday.rph.truck4) || '0',
+                        truck5: getTruckCellValue('truck5', mapping.yesterday.rph.truck5) || '0',
+                        total: '0'  // TODO: Calculate average or specify total cell
+                    }
+                },
+                weekly: calculateWeeklyRecords(truckData, yesterdayRow)
+            };
         }
 
         /**
          * Parse CSV rows into the expected data structure using cell mapping from CONFIG
          * This uses the Excel cell references you specify in CONFIG.cellMapping
+         * (Legacy function for single-tab sheets)
          */
         function parseCSVToData(rows) {
             const mapping = CONFIG.cellMapping;
@@ -959,7 +1609,22 @@
         }
 
         /**
-         * Load dummy data for testing
+         * Show N/A for all cells when data is not available
+         */
+        function showNAForAllCells() {
+            // Update all data cells to show "N/A"
+            const allDataCells = document.querySelectorAll('.data-cell');
+            allDataCells.forEach(cell => {
+                const pTag = cell.querySelector('p');
+                if (pTag) {
+                    pTag.textContent = 'N/A';
+                }
+            });
+            console.log('Displayed N/A for all cells');
+        }
+
+        /**
+         * Load dummy data for testing (DEPRECATED - use showNAForAllCells instead)
          */
         function loadDummyData() {
             const dummyData = {
@@ -1035,7 +1700,8 @@
          */
         async function loadData() {
             if (CONFIG.useDummyData) {
-                loadDummyData();
+                console.log('⚠️ useDummyData is true - showing N/A instead');
+                showNAForAllCells();
                 return;
             }
 
@@ -1058,20 +1724,53 @@
             }
 
             if (data) {
+                console.log('✅ Updating cells with real data from', CONFIG.dataSource);
                 updateAllCells(data);
-                console.log('Data updated successfully at', new Date().toLocaleTimeString());
+                console.log('✅ Data updated successfully at', new Date().toLocaleTimeString());
             } else {
-                console.warn('Could not load data, using dummy data');
-                loadDummyData();
+                console.warn('⚠️ Could not load data from', CONFIG.dataSource);
+                console.warn('Displaying N/A for all values');
+                // Show N/A instead of dummy data
+                showNAForAllCells();
             }
+        }
+
+        /**
+         * Update date displays with current date and yesterday
+         */
+        function updateDates() {
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            // Format dates as "Month. Day" (e.g., "Jan. 15", "Dec. 3")
+            const monthNames = ['Jan.', 'Feb.', 'Mar.', 'Apr.', 'May', 'Jun.', 'Jul.', 'Aug.', 'Sept.', 'Oct.', 'Nov.', 'Dec.'];
+            
+            const todayFormatted = `${monthNames[today.getMonth()]} ${today.getDate()}`;
+            const yesterdayFormatted = `${monthNames[yesterday.getMonth()]} ${yesterday.getDate()}`;
+            
+            const todayElement = document.getElementById('today-date');
+            const yesterdayElement = document.getElementById('yesterday-date');
+            
+            if (todayElement) todayElement.textContent = todayFormatted;
+            if (yesterdayElement) yesterdayElement.textContent = yesterdayFormatted;
         }
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
+            console.log('=== PAGE LOADED ===');
+            console.log('CONFIG.useDummyData:', CONFIG.useDummyData);
+            console.log('CONFIG.dataSource:', CONFIG.dataSource);
+            
+            // Update dates first
+            updateDates();
+            
+            // Load data immediately (don't wait)
             loadData();
             
             // Set up auto-refresh if enabled
             if (CONFIG.refreshInterval > 0 && !CONFIG.useDummyData) {
+                console.log(`Auto-refresh enabled: every ${CONFIG.refreshInterval}ms`);
                 setInterval(loadData, CONFIG.refreshInterval);
             }
         });
