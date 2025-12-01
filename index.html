@@ -421,7 +421,34 @@
                         <div class="w-full flex justify-center items-center flex-1">
                             <div id="ti-widget-b4f8c971132a8200578625a6fc8" class="w-full max-w-md mx-auto"></div>
                         </div>
-                        <script defer async src='https://cdn.trustindex.io/loader.js?a51b543553584630dc4680585a3'></script>
+                        <script>
+                            // Error handling for TrustIndex widget and browser extension errors
+                            window.addEventListener('error', function(e) {
+                                // Suppress browser extension connection errors (harmless)
+                                if (e.message && e.message.includes('Could not establish connection')) {
+                                    console.debug('🔇 [TRUSTINDEX] Suppressed browser extension error (harmless):', e.message);
+                                    e.preventDefault();
+                                    return false;
+                                }
+                                // Suppress TrustIndex widget errors if element doesn't exist yet
+                                if (e.filename && e.filename.includes('Trustindex') && e.message && e.message.includes('setAttribute')) {
+                                    console.debug('🔇 [TRUSTINDEX] Widget initialization error (will retry):', e.message);
+                                    e.preventDefault();
+                                    return false;
+                                }
+                            }, true);
+                            
+                            // Ensure TrustIndex widget container exists before loading script
+                            document.addEventListener('DOMContentLoaded', function() {
+                                const widgetContainer = document.getElementById('ti-widget-b4f8c971132a8200578625a6fc8');
+                                if (widgetContainer) {
+                                    console.log('✅ [TRUSTINDEX] Widget container found, loading script...');
+                                } else {
+                                    console.warn('⚠️ [TRUSTINDEX] Widget container not found');
+                                }
+                            });
+                        </script>
+                        <script defer async src='https://cdn.trustindex.io/loader.js?b4f8c971132a8200578625a6fc8'></script>
                     </div>
 
                     <!-- Weekly Record Trucks - Match Yesterday height -->
@@ -720,17 +747,27 @@
          * Update all cells from a data object
          */
         function updateAllCells(data) {
-            console.log('=== UPDATING ALL CELLS WITH REAL DATA ===');
-            console.log('Data received:', {
+            console.log('🔄 [UPDATE CELLS] ========== UPDATING ALL CELLS ==========');
+            console.log('🔄 [UPDATE CELLS] Data received:', {
+                hasToday: !!data.today,
+                hasYesterday: !!data.yesterday,
+                hasWeekly: !!data.weekly,
                 today_daily_rev_truck1: data.today?.daily_rev?.truck1,
                 today_daily_rev_truck2: data.today?.daily_rev?.truck2,
+                today_close_rate_truck1: data.today?.close_rate?.truck1,
                 yesterday_daily_rev_truck1: data.yesterday?.daily_rev?.truck1,
-                yesterday_daily_rev_truck2: data.yesterday?.daily_rev?.truck2
+                yesterday_daily_rev_truck2: data.yesterday?.daily_rev?.truck2,
+                yesterday_close_rate_truck1: data.yesterday?.close_rate?.truck1
             });
+            
+            let updateCount = 0;
+            let missingCount = 0;
             
             // Update Today's stats
             if (data.today) {
+                console.log('🔄 [UPDATE CELLS] Updating TODAY stats...');
                 Object.keys(data.today).forEach(metric => {
+                    console.log(`  📊 Processing metric: ${metric}`);
                     Object.keys(data.today[metric]).forEach(truck => {
                         // Convert "truck1" to "1", "truck2" to "2", etc.
                         const truckNumber = truck.replace('truck', '');
@@ -740,18 +777,24 @@
                         
                         const cell = document.querySelector(selector);
                         if (!cell) {
-                            console.warn(`⚠️ Cell not found: ${selector}`);
+                            console.warn(`⚠️ [UPDATE CELLS] Cell not found: ${selector}`);
+                            missingCount++;
                         } else {
-                            console.log(`✅ Updating TODAY ${metric} truck${truckNumber}: "${value}" → format: ${format}`);
-                        updateCell(selector, value, format);
+                            console.log(`✅ [UPDATE CELLS] Updating TODAY ${metric} truck${truckNumber}: "${value}" → format: ${format}`);
+                            updateCell(selector, value, format);
+                            updateCount++;
                         }
                     });
                 });
+            } else {
+                console.warn('⚠️ [UPDATE CELLS] No TODAY data available');
             }
 
             // Update Yesterday's stats
             if (data.yesterday) {
+                console.log('🔄 [UPDATE CELLS] Updating YESTERDAY stats...');
                 Object.keys(data.yesterday).forEach(metric => {
+                    console.log(`  📊 Processing metric: ${metric}`);
                     Object.keys(data.yesterday[metric]).forEach(truck => {
                         // Convert "truck1" to "1", "truck2" to "2", etc.
                         const truckNumber = truck.replace('truck', '');
@@ -761,26 +804,38 @@
                         
                         const cell = document.querySelector(selector);
                         if (!cell) {
-                            console.warn(`⚠️ Cell not found: ${selector}`);
+                            console.warn(`⚠️ [UPDATE CELLS] Cell not found: ${selector}`);
+                            missingCount++;
                         } else {
-                            console.log(`✅ Updating YESTERDAY ${metric} truck${truckNumber}: "${value}" → format: ${format}`);
-                        updateCell(selector, value, format);
+                            console.log(`✅ [UPDATE CELLS] Updating YESTERDAY ${metric} truck${truckNumber}: "${value}" → format: ${format}`);
+                            updateCell(selector, value, format);
+                            updateCount++;
                         }
                     });
                 });
+            } else {
+                console.warn('⚠️ [UPDATE CELLS] No YESTERDAY data available');
             }
 
             // Update Weekly records
             if (data.weekly) {
+                console.log('🔄 [UPDATE CELLS] Updating WEEKLY records...');
                 Object.keys(data.weekly).forEach(field => {
                     const selector = `.data-cell[data-sheet="weekly"][data-field="${field}"]`;
                     const value = data.weekly[field];
                     let format = 'text';
                     if (field.includes('revenue')) format = 'currency';
                     if (field.includes('date')) format = 'date';
+                    console.log(`✅ [UPDATE CELLS] Updating WEEKLY ${field}: "${value}" → format: ${format}`);
                     updateCell(selector, value, format);
+                    updateCount++;
                 });
+            } else {
+                console.warn('⚠️ [UPDATE CELLS] No WEEKLY data available');
             }
+            
+            console.log(`✅ [UPDATE CELLS] Update complete: ${updateCount} cells updated, ${missingCount} cells not found`);
+            console.log('🔄 [UPDATE CELLS] ========== UPDATE COMPLETE ==========');
         }
 
         /**
@@ -790,6 +845,9 @@
             const timestamp = new Date().getTime();
             const csvUrl = `https://docs.google.com/spreadsheets/d/${CONFIG.googleSheetId}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}&t=${timestamp}`;
             
+            console.log(`📊 [FETCH] Starting fetch for sheet: "${sheetName}"`);
+            console.log(`📊 [FETCH] URL: ${csvUrl}`);
+            
             // Google Sheets CSV export doesn't require custom headers and blocks some CORS headers
             // Using minimal headers to avoid CORS preflight issues
             const response = await fetch(csvUrl, {
@@ -798,12 +856,25 @@
                 // Removed custom headers that cause CORS issues with Google Sheets
             });
             
+            console.log(`📊 [FETCH] Response status for "${sheetName}": ${response.status} ${response.statusText}`);
+            
             if (!response.ok) {
+                console.error(`❌ [FETCH] HTTP error for "${sheetName}": ${response.status} ${response.statusText}`);
                 throw new Error(`HTTP error! status: ${response.status} for sheet "${sheetName}"`);
             }
             
             const csvText = await response.text();
-            return parseCSV(csvText);
+            console.log(`📊 [FETCH] Received CSV text for "${sheetName}" (length: ${csvText.length} chars)`);
+            console.log(`📊 [FETCH] First 200 chars of CSV for "${sheetName}":`, csvText.substring(0, 200));
+            
+            const parsedData = parseCSV(csvText);
+            console.log(`📊 [FETCH] Parsed CSV for "${sheetName}": ${parsedData.length} rows`);
+            if (parsedData.length > 0) {
+                console.log(`📊 [FETCH] First row of "${sheetName}" has ${parsedData[0].length} columns`);
+                console.log(`📊 [FETCH] First row sample (first 10 columns):`, parsedData[0].slice(0, 10));
+            }
+            
+            return parsedData;
         }
 
         /**
@@ -812,17 +883,21 @@
          * Requires: Public sheet
          */
         async function fetchFromGoogleSheets() {
+            console.log('🚀 [GOOGLE SHEETS] Starting fetchFromGoogleSheets()');
+            console.log('🚀 [GOOGLE SHEETS] Sheet ID:', CONFIG.googleSheetId);
+            
             if (!CONFIG.googleSheetId || CONFIG.googleSheetId === 'YOUR_SHEET_ID_HERE') {
-                console.warn('Google Sheet ID not configured');
+                console.warn('❌ [GOOGLE SHEETS] Google Sheet ID not configured');
                 return null;
             }
 
             try {
-                console.log('Fetching data from multiple Google Sheets tabs...');
+                console.log('📥 [GOOGLE SHEETS] Fetching data from multiple Google Sheets tabs...');
                 
                 // Fetch data from each truck's tab
                 const truckData = {};
                 const truckSheets = CONFIG.truckSheets || {};
+                console.log('📥 [GOOGLE SHEETS] Truck sheets mapping:', truckSheets);
                 
                 // Fetch all truck tabs in parallel
                 const fetchPromises = [];
@@ -831,28 +906,54 @@
                 for (const truckKey of truckKeys) {
                     const sheetName = truckSheets[truckKey];
                     if (sheetName) {
+                        console.log(`📥 [GOOGLE SHEETS] Queueing fetch for ${truckKey} → "${sheetName}"`);
                         fetchPromises.push(
                             fetchSheetTab(sheetName)
                                 .then(rows => {
                                     truckData[truckKey] = rows;
-                                    console.log(`✓ Fetched data from "${sheetName}"`);
+                                    console.log(`✅ [GOOGLE SHEETS] Successfully fetched data from "${sheetName}" for ${truckKey}`);
+                                    console.log(`✅ [GOOGLE SHEETS] ${truckKey} data: ${rows.length} rows`);
                                 })
                                 .catch(error => {
-                                    console.warn(`⚠ Could not fetch "${sheetName}":`, error.message);
+                                    console.error(`❌ [GOOGLE SHEETS] Could not fetch "${sheetName}" for ${truckKey}:`, error);
+                                    console.error(`❌ [GOOGLE SHEETS] Error details:`, error.message, error.stack);
                                     truckData[truckKey] = null;
                                 })
                         );
+                    } else {
+                        console.warn(`⚠️ [GOOGLE SHEETS] No sheet name configured for ${truckKey}`);
                     }
                 }
                 
+                console.log(`📥 [GOOGLE SHEETS] Waiting for ${fetchPromises.length} fetch operations to complete...`);
                 // Wait for all fetches to complete
                 await Promise.all(fetchPromises);
                 
+                console.log('📥 [GOOGLE SHEETS] All fetches completed. Truck data summary:');
+                Object.keys(truckData).forEach(key => {
+                    const data = truckData[key];
+                    if (data) {
+                        console.log(`  ✅ ${key}: ${data.length} rows`);
+                    } else {
+                        console.log(`  ❌ ${key}: null (fetch failed)`);
+                    }
+                });
+                
+                console.log('🔄 [GOOGLE SHEETS] Parsing data from all tabs...');
                 // Parse the data from all tabs
-                return parseCSVToDataMultiTab(truckData);
+                const parsedData = parseCSVToDataMultiTab(truckData);
+                console.log('✅ [GOOGLE SHEETS] Data parsing completed');
+                console.log('📊 [GOOGLE SHEETS] Parsed data structure:', {
+                    hasToday: !!parsedData.today,
+                    hasYesterday: !!parsedData.yesterday,
+                    hasWeekly: !!parsedData.weekly
+                });
+                
+                return parsedData;
                 
             } catch (error) {
-                console.error('Error fetching from Google Sheets:', error);
+                console.error('❌ [GOOGLE SHEETS] Fatal error fetching from Google Sheets:', error);
+                console.error('❌ [GOOGLE SHEETS] Error stack:', error.stack);
                 return null;
             }
         }
@@ -1132,8 +1233,13 @@
          * Parse CSV text into rows, handling quoted values
          */
         function parseCSV(csvText) {
+            console.log('📄 [PARSE CSV] Starting CSV parsing...');
+            console.log('📄 [PARSE CSV] CSV text length:', csvText.length, 'characters');
+            console.log('📄 [PARSE CSV] First 500 characters:', csvText.substring(0, 500));
+            
             const rows = [];
             const lines = csvText.split('\n');
+            console.log('📄 [PARSE CSV] Split into', lines.length, 'lines');
             
             for (let line of lines) {
                 // Skip completely empty lines
@@ -1171,12 +1277,32 @@
             }
             
             // Debug: Log first few rows to help diagnose issues
+            console.log('📄 [PARSE CSV] Parsing complete. Total rows:', rows.length);
             if (rows.length > 0) {
-                console.log('Parsed CSV - Total rows:', rows.length);
-                console.log('First row has', rows[0]?.length || 0, 'columns');
+                console.log('📄 [PARSE CSV] First row has', rows[0]?.length || 0, 'columns');
+                console.log('📄 [PARSE CSV] First row sample (first 15 columns):', rows[0]?.slice(0, 15));
+                
+                // Log specific rows we care about (352, 353 for yesterday/today)
+                const targetRows = [351, 352, 353, 354]; // 0-indexed: 352=row 353, 351=row 352
+                targetRows.forEach(rowIdx => {
+                    if (rows.length > rowIdx) {
+                        const row = rows[rowIdx];
+                        console.log(`📄 [PARSE CSV] Row ${rowIdx + 1} (index ${rowIdx}) has ${row?.length || 0} columns`);
+                        if (row && row.length > 9) {
+                            console.log(`📄 [PARSE CSV] Row ${rowIdx + 1} - Column J (index 9): "${row[9]}"`);
+                        }
+                        if (row && row.length > 11) {
+                            console.log(`📄 [PARSE CSV] Row ${rowIdx + 1} - Column L (index 11): "${row[11]}"`);
+                        }
+                        if (row && row.length > 12) {
+                            console.log(`📄 [PARSE CSV] Row ${rowIdx + 1} - Column M (index 12): "${row[12]}"`);
+                        }
+                    }
+                });
+                
                 if (rows.length > 335) {
-                    console.log('Row 336 (index 335) has', rows[335]?.length || 0, 'columns');
-                    console.log('Row 336 data:', rows[335]);
+                    console.log('📄 [PARSE CSV] Row 336 (index 335) has', rows[335]?.length || 0, 'columns');
+                    console.log('📄 [PARSE CSV] Row 336 data (first 15 columns):', rows[335]?.slice(0, 15));
                 }
             }
             
@@ -1409,10 +1535,12 @@
             function getTruckCellValue(truckKey, cellRef) {
                 const rows = truckData[truckKey];
                 if (!rows) {
-                    console.warn(`No data available for ${truckKey}`);
+                    console.warn(`⚠️ [PARSE] No data available for ${truckKey}`);
                     return '0';
                 }
+                console.log(`🔍 [PARSE] Getting cell ${cellRef} from ${truckKey} (${rows.length} rows available)`);
                 const value = getCellValue(rows, cellRef);
+                console.log(`🔍 [PARSE] Cell ${cellRef} from ${truckKey} = "${value}"`);
                 return value;
             }
             
@@ -1431,31 +1559,47 @@
             
             // Helper to calculate close rate from columns L and M: (L / M) * 100%
             function calculateCloseRate(truckKey, row) {
+                console.log(`📈 [CLOSE RATE] Calculating close rate for ${truckKey} at row ${row}`);
                 const lValue = getTruckCellValue(truckKey, `L${row}`);
                 const mValue = getTruckCellValue(truckKey, `M${row}`);
+                
+                console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: L=${lValue}, M=${mValue}`);
                 
                 // Parse numeric values (remove $, commas, spaces)
                 const lNum = parseFloat(String(lValue).replace(/\$|,|\s/g, '')) || 0;
                 const mNum = parseFloat(String(mValue).replace(/\$|,|\s/g, '')) || 0;
                 
+                console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: L (parsed)=${lNum}, M (parsed)=${mNum}`);
+                
                 // Calculate percentage: (L / M) * 100
                 if (mNum === 0) {
+                    console.warn(`⚠️ [CLOSE RATE] ${truckKey} row ${row}: M is 0, returning 0%`);
                     return '0';
                 }
                 
                 const closeRate = (lNum / mNum) * 100;
-                return String(Math.round(closeRate * 100) / 100); // Round to 2 decimal places
+                const roundedRate = Math.round(closeRate * 100) / 100;
+                console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: Calculated = ${closeRate}%, Rounded = ${roundedRate}%`);
+                return String(roundedRate);
             }
             
             // Get individual truck values for TODAY (using todayRow which starts at 353)
-            console.log('Fetching TODAY data from row', todayRow);
+            console.log('📅 [PARSE] ========== FETCHING TODAY DATA ==========');
+            console.log('📅 [PARSE] TODAY row number:', todayRow);
+            console.log('📅 [PARSE] Fetching from column J for all trucks...');
+            
             const todayTruck1 = getTodayCell('truck1');
             const todayTruck2 = getTodayCell('truck2');
             const todayTruck3 = getTodayCell('truck3');
             const todayTruck4 = getTodayCell('truck4');
             const todayTruck5 = getTodayCell('truck5');
             
-            console.log('TODAY values:', { truck1: todayTruck1, truck2: todayTruck2, truck3: todayTruck3, truck4: todayTruck4, truck5: todayTruck5 });
+            console.log('📅 [PARSE] TODAY Daily Rev values from J' + todayRow + ':');
+            console.log('  Truck 1:', todayTruck1);
+            console.log('  Truck 2:', todayTruck2);
+            console.log('  Truck 3:', todayTruck3);
+            console.log('  Truck 4:', todayTruck4);
+            console.log('  Truck 5:', todayTruck5);
             
             // Helper to clean and parse currency values
             function parseCurrencyValue(val) {
@@ -1475,15 +1619,23 @@
                 parseCurrencyValue(todayTruck5)
             );
             
-            // Get yesterday values (using yesterdayRow which starts at 343)
-            console.log('Fetching YESTERDAY data from row', yesterdayRow);
+            // Get yesterday values (using yesterdayRow which starts at 352)
+            console.log('📅 [PARSE] ========== FETCHING YESTERDAY DATA ==========');
+            console.log('📅 [PARSE] YESTERDAY row number:', yesterdayRow);
+            console.log('📅 [PARSE] Fetching from column J for all trucks...');
+            
             const yesterdayTruck1 = getYesterdayCell('truck1');
             const yesterdayTruck2 = getYesterdayCell('truck2');
             const yesterdayTruck3 = getYesterdayCell('truck3');
             const yesterdayTruck4 = getYesterdayCell('truck4');
             const yesterdayTruck5 = getYesterdayCell('truck5');
             
-            console.log('YESTERDAY values:', { truck1: yesterdayTruck1, truck2: yesterdayTruck2, truck3: yesterdayTruck3, truck4: yesterdayTruck4, truck5: yesterdayTruck5 });
+            console.log('📅 [PARSE] YESTERDAY Daily Rev values from J' + yesterdayRow + ':');
+            console.log('  Truck 1:', yesterdayTruck1);
+            console.log('  Truck 2:', yesterdayTruck2);
+            console.log('  Truck 3:', yesterdayTruck3);
+            console.log('  Truck 4:', yesterdayTruck4);
+            console.log('  Truck 5:', yesterdayTruck5);
             
             // Calculate total for yesterday
             const yesterdayTotal = String(
@@ -1505,11 +1657,11 @@
                         total: todayTotal  // Calculated sum of all trucks
                     },
                     close_rate: {
-                        truck1: calculateCloseRate('truck1', todayRow),
-                        truck2: calculateCloseRate('truck2', todayRow),
-                        truck3: calculateCloseRate('truck3', todayRow),
-                        truck4: calculateCloseRate('truck4', todayRow),
-                        truck5: calculateCloseRate('truck5', todayRow),
+                        truck1: (() => { console.log('📈 [PARSE] Calculating TODAY close rate for Truck 1...'); return calculateCloseRate('truck1', todayRow); })(),
+                        truck2: (() => { console.log('📈 [PARSE] Calculating TODAY close rate for Truck 2...'); return calculateCloseRate('truck2', todayRow); })(),
+                        truck3: (() => { console.log('📈 [PARSE] Calculating TODAY close rate for Truck 3...'); return calculateCloseRate('truck3', todayRow); })(),
+                        truck4: (() => { console.log('📈 [PARSE] Calculating TODAY close rate for Truck 4...'); return calculateCloseRate('truck4', todayRow); })(),
+                        truck5: (() => { console.log('📈 [PARSE] Calculating TODAY close rate for Truck 5...'); return calculateCloseRate('truck5', todayRow); })(),
                         total: '0'  // TODO: Calculate average or specify total cell
                     },
                     rph: {
@@ -1531,11 +1683,11 @@
                         total: yesterdayTotal  // Calculated sum of all trucks
                     },
                     close_rate: {
-                        truck1: calculateCloseRate('truck1', yesterdayRow),
-                        truck2: calculateCloseRate('truck2', yesterdayRow),
-                        truck3: calculateCloseRate('truck3', yesterdayRow),
-                        truck4: calculateCloseRate('truck4', yesterdayRow),
-                        truck5: calculateCloseRate('truck5', yesterdayRow),
+                        truck1: (() => { console.log('📈 [PARSE] Calculating YESTERDAY close rate for Truck 1...'); return calculateCloseRate('truck1', yesterdayRow); })(),
+                        truck2: (() => { console.log('📈 [PARSE] Calculating YESTERDAY close rate for Truck 2...'); return calculateCloseRate('truck2', yesterdayRow); })(),
+                        truck3: (() => { console.log('📈 [PARSE] Calculating YESTERDAY close rate for Truck 3...'); return calculateCloseRate('truck3', yesterdayRow); })(),
+                        truck4: (() => { console.log('📈 [PARSE] Calculating YESTERDAY close rate for Truck 4...'); return calculateCloseRate('truck4', yesterdayRow); })(),
+                        truck5: (() => { console.log('📈 [PARSE] Calculating YESTERDAY close rate for Truck 5...'); return calculateCloseRate('truck5', yesterdayRow); })(),
                         total: '0'  // TODO: Calculate average or specify total cell
                     },
                     rph: {
@@ -1717,8 +1869,17 @@
          * Main function to load data from configured source
          */
         async function loadData() {
+            console.log('🔄 [LOAD DATA] ========== STARTING DATA LOAD ==========');
+            console.log('🔄 [LOAD DATA] Configuration:', {
+                dataSource: CONFIG.dataSource,
+                useDummyData: CONFIG.useDummyData,
+                googleSheetId: CONFIG.googleSheetId,
+                baseRowToday: CONFIG.baseRowToday,
+                baseRowYesterday: CONFIG.baseRowYesterday
+            });
+            
             if (CONFIG.useDummyData) {
-                console.log('⚠️ useDummyData is true - showing N/A instead');
+                console.log('⚠️ [LOAD DATA] useDummyData is true - showing N/A instead');
                 showNAForAllCells();
                 return;
             }
@@ -1726,31 +1887,64 @@
             let data = null;
 
             // Fetch from the configured data source
+            console.log(`🔄 [LOAD DATA] Fetching from data source: ${CONFIG.dataSource}`);
             switch (CONFIG.dataSource) {
                 case 'google_sheets':
+                    console.log('🔄 [LOAD DATA] Calling fetchFromGoogleSheets()...');
                     data = await fetchFromGoogleSheets();
                     break;
                 case 'excel_online':
+                    console.log('🔄 [LOAD DATA] Calling fetchFromExcelOnline()...');
                     data = await fetchFromExcelOnline();
                     break;
                 case 'csv_url':
+                    console.log('🔄 [LOAD DATA] Calling fetchFromCSV()...');
                     data = await fetchFromCSV();
                     break;
                 default:
-                    console.warn('Unknown data source:', CONFIG.dataSource);
+                    console.warn('⚠️ [LOAD DATA] Unknown data source:', CONFIG.dataSource);
+                    console.log('🔄 [LOAD DATA] Falling back to Google Sheets...');
                     data = await fetchFromGoogleSheets(); // Fallback
             }
 
+            console.log('🔄 [LOAD DATA] Data fetch completed. Data received:', data ? 'YES' : 'NO');
+            
             if (data) {
-                console.log('✅ Updating cells with real data from', CONFIG.dataSource);
+                console.log('✅ [LOAD DATA] Updating cells with real data from', CONFIG.dataSource);
+                console.log('📊 [LOAD DATA] Data structure:', {
+                    hasToday: !!data.today,
+                    hasYesterday: !!data.yesterday,
+                    hasWeekly: !!data.weekly,
+                    todayKeys: data.today ? Object.keys(data.today) : [],
+                    yesterdayKeys: data.yesterday ? Object.keys(data.yesterday) : []
+                });
+                
+                if (data.today) {
+                    console.log('📊 [LOAD DATA] TODAY data sample:', {
+                        daily_rev_truck1: data.today.daily_rev?.truck1,
+                        close_rate_truck1: data.today.close_rate?.truck1,
+                        rph_truck1: data.today.rph?.truck1
+                    });
+                }
+                
+                if (data.yesterday) {
+                    console.log('📊 [LOAD DATA] YESTERDAY data sample:', {
+                        daily_rev_truck1: data.yesterday.daily_rev?.truck1,
+                        close_rate_truck1: data.yesterday.close_rate?.truck1,
+                        rph_truck1: data.yesterday.rph?.truck1
+                    });
+                }
+                
                 updateAllCells(data);
-                console.log('✅ Data updated successfully at', new Date().toLocaleTimeString());
+                console.log('✅ [LOAD DATA] Data updated successfully at', new Date().toLocaleTimeString());
             } else {
-                console.warn('⚠️ Could not load data from', CONFIG.dataSource);
-                console.warn('Displaying N/A for all values');
+                console.error('❌ [LOAD DATA] Could not load data from', CONFIG.dataSource);
+                console.warn('⚠️ [LOAD DATA] Displaying N/A for all values');
                 // Show N/A instead of dummy data
                 showNAForAllCells();
             }
+            
+            console.log('🔄 [LOAD DATA] ========== DATA LOAD COMPLETE ==========');
         }
 
         /**
