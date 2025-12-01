@@ -592,9 +592,9 @@
             // Base row number for today (will be calculated dynamically)
             // TODAY uses row 344 (J344), YESTERDAY uses row 343 (J343)
             // Set useDynamicRows to false to use fixed rows, or true to auto-increment daily
-            useDynamicRows: false,  // Set to false to use fixed rows 344/343, true to auto-increment
-            baseRowToday: 344,  // TODAY's row (J344) - this is what TODAY table should use
-            baseRowYesterday: 343,  // YESTERDAY's row (J343) - this is what YESTERDAY table should use
+            useDynamicRows: false,  // Set to false to use fixed rows 353/352, true to auto-increment
+            baseRowToday: 353,  // TODAY's row (J353) - this is what TODAY table should use
+            baseRowYesterday: 352,  // YESTERDAY's row (J352) - this is what YESTERDAY table should use
             
             // Reference date when baseRowToday (337) was "today" (only used if useDynamicRows is true)
             // UPDATE THIS to the date when row 337 in your sheet was actually "today"
@@ -1274,16 +1274,16 @@
         /**
          * Calculate the row number for today and yesterday
          * Row numbers increment by 1 each day
-         * TODAY uses baseRowToday (344), YESTERDAY uses baseRowYesterday (343)
+         * TODAY uses baseRowToday (353), YESTERDAY uses baseRowYesterday (352)
          * 
-         * IMPORTANT: Set referenceDate to the date when row 344 was actually "today" in your sheet
-         * This date should match when you want row 344 to represent "today"
+         * IMPORTANT: Set referenceDate to the date when row 353 was actually "today" in your sheet
+         * This date should match when you want row 353 to represent "today"
          */
         function calculateTodayRow() {
             // If dynamic rows are disabled, just use the base rows (fixed)
             if (!CONFIG.useDynamicRows) {
-                const todayRow = CONFIG.baseRowToday;  // Fixed: 344
-                const yesterdayRow = CONFIG.baseRowYesterday;  // Fixed: 343
+                const todayRow = CONFIG.baseRowToday;  // Fixed: 353
+                const yesterdayRow = CONFIG.baseRowYesterday;  // Fixed: 352
                 console.log(`Using FIXED rows - TODAY: J${todayRow}, YESTERDAY: J${yesterdayRow}`);
                 return { todayRow, yesterdayRow };
             }
@@ -1396,7 +1396,7 @@
         /**
          * Parse data from multiple tabs (one per truck)
          * Each truck's data comes from its own tab
-         * Today uses dynamically calculated row (starts at J344), Yesterday uses row - 1 (starts at J343)
+         * Today uses dynamically calculated row (starts at J353), Yesterday uses row - 1 (starts at J352)
          */
         function parseCSVToDataMultiTab(truckData) {
             const mapping = CONFIG.cellMapping;
@@ -1429,25 +1429,25 @@
                 return getTruckCellValue(truckKey, cellRef);
             }
             
-            // Helper to calculate close rate from columns K and L: (K / L) * 100%
+            // Helper to calculate close rate from columns L and M: (L / M) * 100%
             function calculateCloseRate(truckKey, row) {
-                const kValue = getTruckCellValue(truckKey, `K${row}`);
                 const lValue = getTruckCellValue(truckKey, `L${row}`);
+                const mValue = getTruckCellValue(truckKey, `M${row}`);
                 
                 // Parse numeric values (remove $, commas, spaces)
-                const kNum = parseFloat(String(kValue).replace(/\$|,|\s/g, '')) || 0;
                 const lNum = parseFloat(String(lValue).replace(/\$|,|\s/g, '')) || 0;
+                const mNum = parseFloat(String(mValue).replace(/\$|,|\s/g, '')) || 0;
                 
-                // Calculate percentage: (K / L) * 100
-                if (lNum === 0) {
+                // Calculate percentage: (L / M) * 100
+                if (mNum === 0) {
                     return '0';
                 }
                 
-                const closeRate = (kNum / lNum) * 100;
+                const closeRate = (lNum / mNum) * 100;
                 return String(Math.round(closeRate * 100) / 100); // Round to 2 decimal places
             }
             
-            // Get individual truck values for TODAY (using todayRow which starts at 344)
+            // Get individual truck values for TODAY (using todayRow which starts at 353)
             console.log('Fetching TODAY data from row', todayRow);
             const todayTruck1 = getTodayCell('truck1');
             const todayTruck2 = getTodayCell('truck2');
