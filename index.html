@@ -416,7 +416,7 @@
                         <div class="text-center mb-4">
                             <div class="bg-transparent border-2 border-white rounded px-4 py-2 inline-block">
                                 <h2 class="font-grandstander font-bold text-white text-xl md:text-2xl">GOOGLE REVIEWS</h2>
-                            </div>
+                        </div>
                         </div>
                         <div class="w-full flex justify-center items-center flex-1">
                             <div id="ti-widget-b4f8c971132a8200578625a6fc8" class="w-full max-w-md mx-auto"></div>
@@ -1429,6 +1429,24 @@
                 return getTruckCellValue(truckKey, cellRef);
             }
             
+            // Helper to calculate close rate from columns K and L: (K / L) * 100%
+            function calculateCloseRate(truckKey, row) {
+                const kValue = getTruckCellValue(truckKey, `K${row}`);
+                const lValue = getTruckCellValue(truckKey, `L${row}`);
+                
+                // Parse numeric values (remove $, commas, spaces)
+                const kNum = parseFloat(String(kValue).replace(/\$|,|\s/g, '')) || 0;
+                const lNum = parseFloat(String(lValue).replace(/\$|,|\s/g, '')) || 0;
+                
+                // Calculate percentage: (K / L) * 100
+                if (lNum === 0) {
+                    return '0';
+                }
+                
+                const closeRate = (kNum / lNum) * 100;
+                return String(Math.round(closeRate * 100) / 100); // Round to 2 decimal places
+            }
+            
             // Get individual truck values for TODAY (using todayRow which starts at 344)
             console.log('Fetching TODAY data from row', todayRow);
             const todayTruck1 = getTodayCell('truck1');
@@ -1487,11 +1505,11 @@
                         total: todayTotal  // Calculated sum of all trucks
                     },
                     close_rate: {
-                        truck1: getTruckCellValue('truck1', mapping.today.close_rate.truck1) || '0',
-                        truck2: getTruckCellValue('truck2', mapping.today.close_rate.truck2) || '0',
-                        truck3: getTruckCellValue('truck3', mapping.today.close_rate.truck3) || '0',
-                        truck4: getTruckCellValue('truck4', mapping.today.close_rate.truck4) || '0',
-                        truck5: getTruckCellValue('truck5', mapping.today.close_rate.truck5) || '0',
+                        truck1: calculateCloseRate('truck1', todayRow),
+                        truck2: calculateCloseRate('truck2', todayRow),
+                        truck3: calculateCloseRate('truck3', todayRow),
+                        truck4: calculateCloseRate('truck4', todayRow),
+                        truck5: calculateCloseRate('truck5', todayRow),
                         total: '0'  // TODO: Calculate average or specify total cell
                     },
                     rph: {
@@ -1513,11 +1531,11 @@
                         total: yesterdayTotal  // Calculated sum of all trucks
                     },
                     close_rate: {
-                        truck1: getTruckCellValue('truck1', mapping.yesterday.close_rate.truck1) || '0',
-                        truck2: getTruckCellValue('truck2', mapping.yesterday.close_rate.truck2) || '0',
-                        truck3: getTruckCellValue('truck3', mapping.yesterday.close_rate.truck3) || '0',
-                        truck4: getTruckCellValue('truck4', mapping.yesterday.close_rate.truck4) || '0',
-                        truck5: getTruckCellValue('truck5', mapping.yesterday.close_rate.truck5) || '0',
+                        truck1: calculateCloseRate('truck1', yesterdayRow),
+                        truck2: calculateCloseRate('truck2', yesterdayRow),
+                        truck3: calculateCloseRate('truck3', yesterdayRow),
+                        truck4: calculateCloseRate('truck4', yesterdayRow),
+                        truck5: calculateCloseRate('truck5', yesterdayRow),
                         total: '0'  // TODO: Calculate average or specify total cell
                     },
                     rph: {
