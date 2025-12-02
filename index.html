@@ -1544,40 +1544,55 @@
                 return value;
             }
             
-            // Helper to create cell reference with dynamic row (column J = column 9)
+            // Helper to create cell reference with dynamic row
+            // Truck 1 uses column A, other trucks use column J
             function getTodayCell(truckKey) {
-                const cellRef = `J${todayRow}`;
+                const column = truckKey === 'truck1' ? 'A' : 'J';
+                const cellRef = `${column}${todayRow}`;
                 console.log(`Getting today's data from ${truckKey} at ${cellRef}`);
                 return getTruckCellValue(truckKey, cellRef);
             }
             
             function getYesterdayCell(truckKey) {
-                const cellRef = `J${yesterdayRow}`;
+                const column = truckKey === 'truck1' ? 'A' : 'J';
+                const cellRef = `${column}${yesterdayRow}`;
                 console.log(`Getting yesterday's data from ${truckKey} at ${cellRef}`);
                 return getTruckCellValue(truckKey, cellRef);
             }
             
-            // Helper to calculate close rate from columns L and M: (L / M) * 100%
+            // Helper to calculate close rate
+            // Truck 1 uses columns C and D: (C / D) * 100%
+            // Other trucks use columns L and M: (L / M) * 100%
             function calculateCloseRate(truckKey, row) {
                 console.log(`📈 [CLOSE RATE] Calculating close rate for ${truckKey} at row ${row}`);
-                const lValue = getTruckCellValue(truckKey, `L${row}`);
-                const mValue = getTruckCellValue(truckKey, `M${row}`);
                 
-                console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: L=${lValue}, M=${mValue}`);
+                let col1, col2;
+                if (truckKey === 'truck1') {
+                    col1 = 'C';
+                    col2 = 'D';
+                } else {
+                    col1 = 'L';
+                    col2 = 'M';
+                }
+                
+                const col1Value = getTruckCellValue(truckKey, `${col1}${row}`);
+                const col2Value = getTruckCellValue(truckKey, `${col2}${row}`);
+                
+                console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: ${col1}=${col1Value}, ${col2}=${col2Value}`);
                 
                 // Parse numeric values (remove $, commas, spaces)
-                const lNum = parseFloat(String(lValue).replace(/\$|,|\s/g, '')) || 0;
-                const mNum = parseFloat(String(mValue).replace(/\$|,|\s/g, '')) || 0;
+                const col1Num = parseFloat(String(col1Value).replace(/\$|,|\s/g, '')) || 0;
+                const col2Num = parseFloat(String(col2Value).replace(/\$|,|\s/g, '')) || 0;
                 
-                console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: L (parsed)=${lNum}, M (parsed)=${mNum}`);
+                console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: ${col1} (parsed)=${col1Num}, ${col2} (parsed)=${col2Num}`);
                 
-                // Calculate percentage: (L / M) * 100
-                if (mNum === 0) {
-                    console.warn(`⚠️ [CLOSE RATE] ${truckKey} row ${row}: M is 0, returning 0%`);
+                // Calculate percentage: (col1 / col2) * 100
+                if (col2Num === 0) {
+                    console.warn(`⚠️ [CLOSE RATE] ${truckKey} row ${row}: ${col2} is 0, returning 0%`);
                     return '0';
                 }
                 
-                const closeRate = (lNum / mNum) * 100;
+                const closeRate = (col1Num / col2Num) * 100;
                 const roundedRate = Math.round(closeRate * 100) / 100;
                 console.log(`📈 [CLOSE RATE] ${truckKey} row ${row}: Calculated = ${closeRate}%, Rounded = ${roundedRate}%`);
                 return String(roundedRate);
@@ -1586,7 +1601,7 @@
             // Get individual truck values for TODAY (using todayRow which starts at 353)
             console.log('📅 [PARSE] ========== FETCHING TODAY DATA ==========');
             console.log('📅 [PARSE] TODAY row number:', todayRow);
-            console.log('📅 [PARSE] Fetching from column J for all trucks...');
+            console.log('📅 [PARSE] Fetching revenue: Truck 1 from column A, others from column J...');
             
             const todayTruck1 = getTodayCell('truck1');
             const todayTruck2 = getTodayCell('truck2');
@@ -1594,7 +1609,7 @@
             const todayTruck4 = getTodayCell('truck4');
             const todayTruck5 = getTodayCell('truck5');
             
-            console.log('📅 [PARSE] TODAY Daily Rev values from J' + todayRow + ':');
+            console.log('📅 [PARSE] TODAY Daily Rev values (Truck 1 from A' + todayRow + ', others from J' + todayRow + '):');
             console.log('  Truck 1:', todayTruck1);
             console.log('  Truck 2:', todayTruck2);
             console.log('  Truck 3:', todayTruck3);
@@ -1622,7 +1637,7 @@
             // Get yesterday values (using yesterdayRow which starts at 352)
             console.log('📅 [PARSE] ========== FETCHING YESTERDAY DATA ==========');
             console.log('📅 [PARSE] YESTERDAY row number:', yesterdayRow);
-            console.log('📅 [PARSE] Fetching from column J for all trucks...');
+            console.log('📅 [PARSE] Fetching revenue: Truck 1 from column A, others from column J...');
             
             const yesterdayTruck1 = getYesterdayCell('truck1');
             const yesterdayTruck2 = getYesterdayCell('truck2');
@@ -1630,7 +1645,7 @@
             const yesterdayTruck4 = getYesterdayCell('truck4');
             const yesterdayTruck5 = getYesterdayCell('truck5');
             
-            console.log('📅 [PARSE] YESTERDAY Daily Rev values from J' + yesterdayRow + ':');
+            console.log('📅 [PARSE] YESTERDAY Daily Rev values (Truck 1 from A' + yesterdayRow + ', others from J' + yesterdayRow + '):');
             console.log('  Truck 1:', yesterdayTruck1);
             console.log('  Truck 2:', yesterdayTruck2);
             console.log('  Truck 3:', yesterdayTruck3);
@@ -1649,7 +1664,7 @@
             return {
                 today: {
                     daily_rev: {
-                        truck1: todayTruck1,  // From "Truck 1 Revenue" tab, row J{todayRow}
+                        truck1: todayTruck1,  // From "Truck 1 Revenue" tab, row A{todayRow}
                         truck2: todayTruck2,  // From "Truck 2 Revenue" tab, row J{todayRow}
                         truck3: todayTruck3,  // From "Truck 3 Revenue" tab, row J{todayRow}
                         truck4: todayTruck4,  // From "Truck 4 Revenue" tab, row J{todayRow}
@@ -1665,17 +1680,17 @@
                         total: '0'  // TODO: Calculate average or specify total cell
                     },
                     rph: {
-                        truck1: getTruckCellValue('truck1', mapping.today.rph.truck1) || '0',
-                        truck2: getTruckCellValue('truck2', mapping.today.rph.truck2) || '0',
-                        truck3: getTruckCellValue('truck3', mapping.today.rph.truck3) || '0',
-                        truck4: getTruckCellValue('truck4', mapping.today.rph.truck4) || '0',
-                        truck5: getTruckCellValue('truck5', mapping.today.rph.truck5) || '0',
-                        total: '0'  // TODO: Calculate average or specify total cell
+                        truck1: '0',  // RPH set to 0 for now
+                        truck2: '0',  // RPH set to 0 for now
+                        truck3: '0',  // RPH set to 0 for now
+                        truck4: '0',  // RPH set to 0 for now
+                        truck5: '0',  // RPH set to 0 for now
+                        total: '0'
                     }
                 },
                 yesterday: {
                     daily_rev: {
-                        truck1: yesterdayTruck1,  // From "Truck 1 Revenue" tab, row J{yesterdayRow}
+                        truck1: yesterdayTruck1,  // From "Truck 1 Revenue" tab, row A{yesterdayRow}
                         truck2: yesterdayTruck2,  // From "Truck 2 Revenue" tab, row J{yesterdayRow}
                         truck3: yesterdayTruck3,  // From "Truck 3 Revenue" tab, row J{yesterdayRow}
                         truck4: yesterdayTruck4,  // From "Truck 4 Revenue" tab, row J{yesterdayRow}
@@ -1691,12 +1706,12 @@
                         total: '0'  // TODO: Calculate average or specify total cell
                     },
                     rph: {
-                        truck1: getTruckCellValue('truck1', mapping.yesterday.rph.truck1) || '0',
-                        truck2: getTruckCellValue('truck2', mapping.yesterday.rph.truck2) || '0',
-                        truck3: getTruckCellValue('truck3', mapping.yesterday.rph.truck3) || '0',
-                        truck4: getTruckCellValue('truck4', mapping.yesterday.rph.truck4) || '0',
-                        truck5: getTruckCellValue('truck5', mapping.yesterday.rph.truck5) || '0',
-                        total: '0'  // TODO: Calculate average or specify total cell
+                        truck1: '0',  // RPH set to 0 for now
+                        truck2: '0',  // RPH set to 0 for now
+                        truck3: '0',  // RPH set to 0 for now
+                        truck4: '0',  // RPH set to 0 for now
+                        truck5: '0',  // RPH set to 0 for now
+                        total: '0'
                     }
                 },
                 weekly: calculateWeeklyRecords(truckData, yesterdayRow)
